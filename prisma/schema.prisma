@@ -1,0 +1,95 @@
+// Prisma schema for PRO-TRADER
+// Using SQLite for zero-config local development.
+// To move to production Postgres later (e.g. Supabase/Neon free tier):
+//   1. Change provider below to "postgresql"
+//   2. Set DATABASE_URL in .env to your Postgres connection string
+//   3. Run: npx prisma migrate dev
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  passwordSalt String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  trades   Trade[]
+  sessions Session[]
+
+  @@index([email])
+}
+
+model Trade {
+  id            String      @id @default(cuid())
+  userId        String
+  symbol        String // e.g. NIFTY24DEC22000CE
+  instrumentKey String? // Upstox instrument_key, set when symbol picked from live search (e.g. "NSE_FO|44412")
+  side          String // BUY or SELL (SELL = short/writing)
+  quantity      Int
+  entryPrice    Float
+  exitPrice     Float?
+  stopLoss      Float?
+  target        Float?
+  currentPrice  Float? // last known market price, used for live P&L while open
+  pnl           Float? // realized P&L once closed
+  status        String      @default("OPEN")
+  notes         String?
+  createdAt     DateTime    @default(now())
+  closedAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([symbol])
+  @@index([userId])
+}
+
+// Local cache of Upstox's public instrument master, used for the symbol search/autocomplete.
+// No API key needed to build this - the instrument files are publicly downloadable.
+model Instrument {
+  id             String   @id @default(cuid())
+  instrumentKey  String   @unique // Upstox instrument_key, e.g. "NSE_FO|44412"
+  exchange       String // NSE_EQ, NSE_FO, NSE_INDEX
+  tradingSymbol  String
+  name           String?
+  instrumentType String? // EQ, CE, PE, FUT, INDEX
+  strikePrice    Float?
+  expiry         String? // e.g. "2025-12-30"
+  lotSize        Int?
+  updatedAt      DateTime @updatedAt
+
+  @@index([tradingSymbol])
+  @@index([exchange])
+}
+
+// Single-row table holding the current Upstox access token once the user connects their account.
+// Upstox tokens expire daily at 3:30 AM IST, so this gets overwritten each time they reconnect.
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model UpstoxSession {
+  id          String   @id @default("singleton")
+  accessToken String
+  userName    String?
+  updatedAt   DateTime @updatedAt
+}
