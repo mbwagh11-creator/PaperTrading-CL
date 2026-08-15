@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { createSessionForUser, sessionCookieOptions } from "@/lib/auth";
+import { createSessionForUser, sessionCookieOptions, signJwt, USER_JWT_COOKIE } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name, email, and password are required" }, { status: 400 });
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findUnique({ where: { email } }).catch(() => null);
     if (existing) {
       return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
     }
@@ -45,6 +45,16 @@ export async function POST(req: NextRequest) {
     });
 
     const { token, expiresAt } = await createSessionForUser(user.id);
+
+    const jwtToken = signJwt({
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      passwordHash: user.passwordHash,
+      passwordSalt: user.passwordSalt,
+      exp: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+    });
+
     const response = NextResponse.json({
       success: true,
       user: {
@@ -56,6 +66,7 @@ export async function POST(req: NextRequest) {
       },
     });
     response.cookies.set("protrader_session", token, sessionCookieOptions(expiresAt));
+    response.cookies.set(USER_JWT_COOKIE, jwtToken, sessionCookieOptions(expiresAt));
 
     return response;
   } catch (err: any) {
