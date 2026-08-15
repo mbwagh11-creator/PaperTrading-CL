@@ -1,14 +1,13 @@
 import { PrismaClient } from "@prisma/client";
 
 function getCleanDatabaseUrl(): string | undefined {
-  let url = process.env.DATABASE_URL || "";
+  let url = process.env.DATABASE_URL || process.env.NEXT_PUBLIC_DATABASE_URL || "";
   url = url.trim().replace(/^["']|["']$/g, "").trim();
 
   if (!url) return undefined;
 
-  // If url doesn't start with postgresql:// or postgres:// or file:, format it cleanly
+  // Ensure valid PostgreSQL protocol prefix
   if (!url.startsWith("postgresql://") && !url.startsWith("postgres://") && !url.startsWith("file:")) {
-    // Strip any invalid leading protocol or garbage characters
     const cleanBody = url.replace(/^[a-zA-Z0-9_-]+:\/\//, "");
     url = "postgresql://" + cleanBody;
   }

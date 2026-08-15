@@ -71,6 +71,15 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (err: any) {
     console.error("Signup error:", err);
+    if (err.message && (err.message.includes("localhost:5432") || err.message.includes("Can't reach database"))) {
+      return NextResponse.json(
+        {
+          error:
+            "Database Connection Error: Please verify that DATABASE_URL is added to Vercel Environment Variables with Production environment checked.",
+        },
+        { status: 500 }
+      );
+    }
     return NextResponse.json({ error: err.message || "Failed to create account" }, { status: 500 });
   }
 }
