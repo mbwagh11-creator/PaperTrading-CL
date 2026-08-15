@@ -3,7 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://protrader.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://pro-trader.in";
 
 export const viewport: Viewport = {
   themeColor: "#0f172a",
