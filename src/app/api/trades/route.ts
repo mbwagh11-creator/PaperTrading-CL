@@ -5,6 +5,26 @@ import { calculateSubscriptionStatus } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
+// Helper to check official NSE Market Hours (Mon-Fri 9:15 AM to 3:30 PM IST)
+function isNseMarketOpenNow(): boolean {
+  const now = new Date();
+  const utcOffsetMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const istTime = new Date(utcOffsetMs + 5.5 * 3600000);
+
+  const dayOfWeek = istTime.getDay(); // 0 = Sun, 6 = Sat, 1-5 = Mon-Fri
+  const hours = istTime.getHours();
+  const minutes = istTime.getMinutes();
+  const timeInMinutes = hours * 60 + minutes;
+
+  const marketOpenMinutes = 9 * 60 + 15; // 9:15 AM
+  const marketCloseMinutes = 15 * 60 + 30; // 3:30 PM
+
+  const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+  const isMarketHours = timeInMinutes >= marketOpenMinutes && timeInMinutes <= marketCloseMinutes;
+
+  return isWeekday && isMarketHours;
+}
+
 // GET /api/trades?status=OPEN|CLOSED  (omit status to get all)
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser();
@@ -32,7 +52,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Guard trade creation against expired trial
+  // Guard 1: Reject trades if market is closed
+  if (!isNseMarketOpenNow()) {
+    return NextResponse.json(
+      {
+        error:
+          "Order Rejected: NSE Market is currently CLOSED. Trading is strictly permitted only during live market hours (Mon-Fri 9:15 AM - 3:30 PM IST).",
+        marketClosed: true,
+      },
+      { status: 400 }
+    );
+  }
+
+  // Guard 2: Reject trades against expired trial
   const sub = calculateSubscriptionStatus(user);
   if (sub.status === "EXPIRED") {
     return NextResponse.json(

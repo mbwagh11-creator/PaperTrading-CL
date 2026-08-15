@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface InstrumentResult {
   instrumentKey: string;
@@ -25,6 +25,20 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
   const [priceMsg, setPriceMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [isMarketOpen, setIsMarketOpen] = useState(false);
+
+  useEffect(() => {
+    async function checkMarket() {
+      try {
+        const res = await fetch("/api/market/quote?symbol=NIFTY");
+        const data = await res.json();
+        setIsMarketOpen(Boolean(data.isMarketOpen));
+      } catch {
+        // fallback
+      }
+    }
+    checkMarket();
+  }, []);
 
   async function handleSymbolChange(value: string) {
     setSymbol(value);
@@ -42,7 +56,7 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
       setSuggestions(data);
       setShowSuggestions(true);
     } catch {
-      // silently ignore - user can still type a symbol manually
+      // silently ignore
     }
   }
 
@@ -70,7 +84,8 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
       }
 
       setEntryPrice(String(data.lastPrice));
-      setPriceMsg(`Loaded ₹${data.lastPrice} (Real-time)`);
+      setIsMarketOpen(Boolean(data.isMarketOpen));
+      setPriceMsg(`Loaded ₹${data.lastPrice} (${data.isMarketOpen ? "Live NSE Feed" : "Static Close Price"})`);
     } catch (err: any) {
       setError(`Price fetch failed: ${err.message}`);
     } finally {
@@ -90,6 +105,11 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!isMarketOpen) {
+      setError("Order Rejected: NSE Market is currently CLOSED. Trading is strictly permitted only during live exchange hours (Mon-Fri 9:15 AM - 3:30 PM IST).");
+      return;
+    }
 
     if (!symbol || !quantity || !entryPrice) {
       setError("Symbol, quantity and entry price are required.");
@@ -141,7 +161,18 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
       onSubmit={handleSubmit}
       className="bg-white/5 border border-white/10 backdrop-blur-xl rounded-2xl p-5 space-y-4 shadow-[0_18px_60px_rgba(0,0,0,0.25)]"
     >
-      <h2 className="font-semibold">New Paper Trade</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold">New Paper Trade</h2>
+        <span
+          className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
+            isMarketOpen
+              ? "bg-emerald-400/20 text-emerald-300 border-emerald-400/30"
+              : "bg-rose-500/20 text-rose-300 border-rose-500/30"
+          }`}
+        >
+          {isMarketOpen ? "🟢 Market Open" : "🔒 Market Closed"}
+        </span>
+      </div>
 
       <div className="relative">
         <label className="text-xs text-muted block mb-1">
@@ -257,14 +288,18 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
         </div>
       </div>
 
-      {error && <p className="text-danger text-sm">{error}</p>}
+      {error && <p className="text-rose-400 text-xs bg-rose-950/40 p-2.5 rounded-xl border border-rose-500/30">{error}</p>}
 
       <button
         type="submit"
-        disabled={submitting}
-        className="w-full bg-accent text-black font-medium py-2.5 rounded-xl hover:brightness-95 transition-all duration-200 disabled:opacity-50 shadow-[0_10px_24px_rgba(97,255,201,0.18)]"
+        disabled={submitting || !isMarketOpen}
+        className={`w-full font-medium py-2.5 rounded-xl transition-all duration-200 ${
+          isMarketOpen
+            ? "bg-accent text-black hover:brightness-95 shadow-[0_10px_24px_rgba(97,255,201,0.18)] cursor-pointer"
+            : "bg-slate-800 text-slate-500 cursor-not-allowed border border-white/10"
+        }`}
       >
-        {submitting ? "Placing..." : "Place Trade"}
+        {submitting ? "Placing..." : isMarketOpen ? "Place Trade" : "🔒 Market Closed (Trading Disabled)"}
       </button>
     </form>
   );
