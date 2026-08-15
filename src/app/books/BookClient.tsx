@@ -190,7 +190,7 @@ const chapters: Chapter[] = [
 
 export default function BookClient() {
   const [selectedChapter, setSelectedChapter] = useState<number>(1);
-  const pdfUrl = "/books/trading-guide.pdf";
+  const pdfUrl = "/books/The_Mathematics_of_the_Third_Trade.pdf";
 
   const activeChap = chapters.find((c) => c.id === selectedChapter) || chapters[0];
 
