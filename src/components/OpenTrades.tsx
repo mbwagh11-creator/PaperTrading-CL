@@ -17,9 +17,11 @@ interface Trade {
 export default function OpenTrades({
   trades,
   onChanged,
+  practiceMode = false,
 }: {
   trades: Trade[];
   onChanged: () => void;
+  practiceMode?: boolean;
 }) {
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [exitDrafts, setExitDrafts] = useState<Record<string, string>>({});
@@ -72,6 +74,7 @@ export default function OpenTrades({
             const params = new URLSearchParams();
             if (t.instrumentKey) params.set("instrumentKey", t.instrumentKey);
             params.set("symbol", t.symbol);
+            if (practiceMode) params.set("practice", "true");
 
             const res = await fetch(`/api/market/quote?${params.toString()}`);
             const data = await res.json();

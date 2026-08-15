@@ -20,6 +20,9 @@ export default function TradesClient() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [marketStatusText, setMarketStatusText] = useState("Checking NSE Market Status...");
+  const [isMarketOpen, setIsMarketOpen] = useState(true);
+  const [practiceMode, setPracticeMode] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -41,12 +44,28 @@ export default function TradesClient() {
     setLoading(false);
   }, []);
 
+  async function checkMarketHours() {
+    try {
+      const res = await fetch("/api/market/quote?symbol=NIFTY");
+      const data = await res.json();
+      if (data.statusText) {
+        setMarketStatusText(data.statusText);
+        setIsMarketOpen(Boolean(data.isMarketOpen));
+      }
+    } catch {
+      // fallback
+    }
+  }
+
   const refreshSilent = useCallback(() => {
     load(true);
   }, [load]);
 
   useEffect(() => {
     load();
+    checkMarketHours();
+    const interval = setInterval(checkMarketHours, 10000);
+    return () => clearInterval(interval);
   }, [load]);
 
   return (
@@ -68,17 +87,34 @@ export default function TradesClient() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-accent/30 bg-slate-900/80 p-4 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+      {/* Market Status Banner */}
+      <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-4 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
         <div className="flex items-center gap-3">
-          <span className="w-3 h-3 rounded-full bg-accent animate-pulse" />
+          <span className={`w-3 h-3 rounded-full ${isMarketOpen || practiceMode ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
           <div>
-            <p className="text-sm font-bold text-white">🟢 Standalone Real-Time NSE Quote Engine Active</p>
-            <p className="text-xs text-slate-300">Live prices & option premiums automatically refresh with zero broker API setup.</p>
+            <p className="text-sm font-bold text-white">{practiceMode ? "🎮 Weekend & After-Hours Practice Mode Active" : marketStatusText}</p>
+            <p className="text-xs text-slate-300">
+              {isMarketOpen
+                ? "Official NSE market hours active (9:15 AM - 3:30 PM IST). Live 1s quotes streaming."
+                : practiceMode
+                ? "Simulating live price fluctuations for weekend & evening strategy testing."
+                : "Real NSE market is closed. Prices are frozen at market close. Enable practice mode to test strategies."}
+            </p>
           </div>
         </div>
-        <span className="text-xs font-semibold px-3 py-1 rounded-full bg-accent/10 border border-accent/30 text-accent">
-          100% Free & Automated
-        </span>
+
+        {!isMarketOpen && (
+          <button
+            onClick={() => setPracticeMode(!practiceMode)}
+            className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all ${
+              practiceMode
+                ? "bg-amber-400/20 text-amber-300 border-amber-400/40 hover:bg-amber-400/30"
+                : "bg-emerald-400/20 text-emerald-300 border-emerald-400/40 hover:bg-emerald-400/30"
+            }`}
+          >
+            {practiceMode ? "Disable Practice Mode" : "🎮 Enable Practice Ticks"}
+          </button>
+        )}
       </div>
 
       <div className="grid md:grid-cols-[380px_1fr] gap-6 items-start">
@@ -88,7 +124,7 @@ export default function TradesClient() {
           {loading ? (
             <p className="text-muted text-sm">Loading positions...</p>
           ) : (
-            <OpenTrades trades={trades} onChanged={refreshSilent} />
+            <OpenTrades trades={trades} onChanged={refreshSilent} practiceMode={practiceMode} />
           )}
         </div>
       </div>
