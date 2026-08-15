@@ -62,7 +62,7 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
       if (keyToUse) params.set("instrumentKey", keyToUse);
       params.set("symbol", sym);
 
-      const res = await fetch(`/api/upstox/quote?${params.toString()}`);
+      const res = await fetch(`/api/market/quote?${params.toString()}`);
       const data = await res.json();
 
       if (!res.ok || data.lastPrice === undefined) {
@@ -70,7 +70,7 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
       }
 
       setEntryPrice(String(data.lastPrice));
-      setPriceMsg(`Loaded ₹${data.lastPrice} (${data.provider || "Live"})`);
+      setPriceMsg(`Loaded ₹${data.lastPrice} (Real-time)`);
     } catch (err: any) {
       setError(`Price fetch failed: ${err.message}`);
     } finally {

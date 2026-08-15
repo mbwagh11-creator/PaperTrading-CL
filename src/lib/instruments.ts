@@ -3,9 +3,6 @@ import { prisma } from "@/lib/prisma";
 
 const NSE_INSTRUMENTS_URL = "https://assets.upstox.com/market-quote/instruments/exchange/NSE.json.gz";
 
-// To keep the local DB small and search fast, we only keep instruments for these
-// underlyings (indices + a starter list of liquid stocks). Add more trading_symbol
-// prefixes here any time - the sync just needs to be re-run.
 const WATCHLIST_UNDERLYINGS = [
   "NIFTY",
   "BANKNIFTY",
@@ -42,11 +39,6 @@ export interface SyncResult {
   kept: number;
 }
 
-/**
- * Downloads Upstox's public NSE instrument master file and stores a filtered,
- * searchable subset in the local database. This is publicly available and
- * requires NO Upstox login or API key - it's just a static file they publish.
- */
 function formatExpiry(val: string | number | undefined | null): string | null {
   if (val === undefined || val === null) return null;
   if (typeof val === "number") {
@@ -84,7 +76,6 @@ export async function syncNseInstruments(): Promise<SyncResult> {
     return WATCHLIST_UNDERLYINGS.some((u) => symbol.startsWith(u));
   });
 
-  // Upsert in batches to avoid one giant transaction
   const BATCH = 200;
   for (let i = 0; i < relevant.length; i += BATCH) {
     const batch = relevant.slice(i, i + BATCH);

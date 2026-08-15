@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import TradeForm from "@/components/TradeForm";
 import OpenTrades from "@/components/OpenTrades";
-import UpstoxPanel from "@/components/UpstoxPanel";
 
 interface Trade {
   id: string;
@@ -48,16 +47,6 @@ export default function TradesClient() {
 
   useEffect(() => {
     load();
-
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("upstox_connected")) {
-      setBanner({ type: "success", text: "Upstox broker connected — live prices synchronized." });
-    } else if (params.get("upstox_error")) {
-      setBanner({ type: "error", text: `Upstox connection info: ${params.get("upstox_error")}` });
-    }
-    if (params.has("upstox_connected") || params.has("upstox_error")) {
-      window.history.replaceState({}, "", "/trades");
-    }
   }, [load]);
 
   return (
@@ -79,7 +68,18 @@ export default function TradesClient() {
         </div>
       )}
 
-      <UpstoxPanel />
+      <div className="rounded-2xl border border-accent/30 bg-slate-900/80 p-4 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+        <div className="flex items-center gap-3">
+          <span className="w-3 h-3 rounded-full bg-accent animate-pulse" />
+          <div>
+            <p className="text-sm font-bold text-white">🟢 Standalone Real-Time NSE Quote Engine Active</p>
+            <p className="text-xs text-slate-300">Live prices & option premiums automatically refresh with zero broker API setup.</p>
+          </div>
+        </div>
+        <span className="text-xs font-semibold px-3 py-1 rounded-full bg-accent/10 border border-accent/30 text-accent">
+          100% Free & Automated
+        </span>
+      </div>
 
       <div className="grid md:grid-cols-[380px_1fr] gap-6 items-start">
         <TradeForm onCreated={refreshSilent} />

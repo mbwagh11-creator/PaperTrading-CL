@@ -90,12 +90,3 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
 }
-
-model UpstoxSession {
-  id          String   @id @default("singleton")
-  accessToken String?
-  apiKey      String?
-  apiSecret   String?
-  userName    String?
-  updatedAt   DateTime @updatedAt
-}

@@ -38,7 +38,7 @@ export default function OpenTrades({
       if (t.instrumentKey) params.set("instrumentKey", t.instrumentKey);
       params.set("symbol", t.symbol);
 
-      const res = await fetch(`/api/upstox/quote?${params.toString()}`);
+      const res = await fetch(`/api/market/quote?${params.toString()}`);
       const data = await res.json();
       if (!res.ok || typeof data.lastPrice !== "number") {
         throw new Error(data.error || "Failed to fetch market price");
@@ -73,7 +73,7 @@ export default function OpenTrades({
             if (t.instrumentKey) params.set("instrumentKey", t.instrumentKey);
             params.set("symbol", t.symbol);
 
-            const res = await fetch(`/api/upstox/quote?${params.toString()}`);
+            const res = await fetch(`/api/market/quote?${params.toString()}`);
             const data = await res.json();
             if (res.ok && typeof data.lastPrice === "number") {
               updates[t.id] = data.lastPrice;
