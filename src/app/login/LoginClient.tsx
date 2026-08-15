@@ -22,7 +22,7 @@ export default function LoginClient() {
         body: JSON.stringify({ name, email, password }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: "Server error occurred. Please try again." }));
       if (!res.ok) throw new Error(data.error || "Authentication failed");
 
       setMessage(mode === "login" ? "Login successful. You can now use paper trading." : "Account created. You can login now.");

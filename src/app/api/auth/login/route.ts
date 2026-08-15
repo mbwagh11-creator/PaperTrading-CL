@@ -10,30 +10,35 @@ function hashPassword(password: string, salt: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const email = String(body.email || "").trim().toLowerCase();
-  const password = String(body.password || "");
+  try {
+    const body = await req.json();
+    const email = String(body.email || "").trim().toLowerCase();
+    const password = String(body.password || "");
 
-  if (!email || !password) {
-    return NextResponse.json({ error: "email and password are required" }, { status: 400 });
+    if (!email || !password) {
+      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+
+    const passwordHash = hashPassword(password, user.passwordSalt);
+    if (passwordHash !== user.passwordHash) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+
+    const { token, expiresAt } = await createSessionForUser(user.id);
+    const response = NextResponse.json({
+      success: true,
+      user: { id: user.id, name: user.name, email: user.email },
+    });
+    response.cookies.set("protrader_session", token, sessionCookieOptions(expiresAt));
+
+    return response;
+  } catch (err: any) {
+    console.error("Login error:", err);
+    return NextResponse.json({ error: err.message || "Failed to login" }, { status: 500 });
   }
-
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-  }
-
-  const passwordHash = hashPassword(password, user.passwordSalt);
-  if (passwordHash !== user.passwordHash) {
-    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-  }
-
-  const { token, expiresAt } = await createSessionForUser(user.id);
-  const response = NextResponse.json({
-    success: true,
-    user: { id: user.id, name: user.name, email: user.email },
-  });
-  response.cookies.set("protrader_session", token, sessionCookieOptions(expiresAt));
-
-  return response;
 }
