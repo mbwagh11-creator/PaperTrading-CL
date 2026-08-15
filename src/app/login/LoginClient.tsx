@@ -142,13 +142,18 @@ export default function LoginClient() {
           ? "Reset Password & Verify Email"
           : "Find My Account"}
       </h1>
-      <p className="mb-5 text-sm text-slate-300">
+      <p className="mb-4 text-sm text-slate-300">
         {mode === "find"
           ? "Type your name to search for your registered email address."
           : mode === "reset"
           ? "Enter your email, verify your 6-digit OTP code sent to your inbox, and enter your new password."
           : "Login or sign up to access your personal NSE options paper-trading terminal & strategy journal."}
       </p>
+
+      {/* Educational & Compliance Disclaimer Notice */}
+      <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-center text-xs text-amber-200/90 leading-normal">
+        ⚠️ <strong>Educational Purpose Only:</strong> PRO-TRADER is strictly for virtual paper-trading practice. It does not guarantee profits or provide investment advisory.
+      </div>
 
       <form onSubmit={submit} className="space-y-3">
         {mode === "find" && (

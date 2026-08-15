@@ -41,6 +41,11 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* Disclaimer Notice */}
+        <div className="rounded-xl border border-white/5 bg-slate-900/40 p-4 text-[11px] text-slate-400 leading-relaxed text-center">
+          <strong>Risk & Educational Disclaimer:</strong> PRO-TRADER is an educational paper-trading simulator for learning Indian stock market & options trading strategies. Virtual funds have no real cash value. PRO-TRADER does not guarantee profits, offer investment recommendations, or act as a SEBI registered entity.
+        </div>
+
         <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-muted gap-4">
           <p>© {new Date().getFullYear()} PRO-TRADER. All rights reserved.</p>
           <div className="flex items-center gap-4 text-slate-400">

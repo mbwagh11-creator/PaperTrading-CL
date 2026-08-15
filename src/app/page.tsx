@@ -32,6 +32,11 @@ export default async function DashboardPage() {
             Live NSE Market Quotes & Option Chain Simulator
           </div>
 
+          {/* Educational Purpose & SEBI Disclaimer Banner */}
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center text-xs text-amber-200/90 leading-relaxed max-w-3xl mx-auto shadow-lg backdrop-blur-md">
+            ⚠️ <strong>Important Educational & Risk Disclaimer:</strong> PRO-TRADER is strictly a 100% paper-trading options simulator for educational, practice, and analytical purposes only. All trades use virtual money. This platform does not guarantee any profits, does not provide investment or financial advice, and is not a SEBI registered entity.
+          </div>
+
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white leading-tight tracking-tight">
             #1 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">NSE Options & Stock</span> Paper Trading Platform
           </h1>
