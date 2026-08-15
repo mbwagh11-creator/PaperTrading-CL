@@ -33,6 +33,8 @@ export default function Navbar() {
   async function handleLogout() {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
+      document.cookie = "protrader_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+      document.cookie = "protrader_user_jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
       setLoggedIn(false);
       setUser(null);
       setSub(null);
