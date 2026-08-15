@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/auth/upstox/callback - Upstox redirects here after login with ?code=...
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");

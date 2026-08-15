@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { calculateSubscriptionStatus } from "@/lib/subscription";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/trades?status=OPEN|CLOSED  (omit status to get all)
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser();

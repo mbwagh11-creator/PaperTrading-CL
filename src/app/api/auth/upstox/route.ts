@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/auth/upstox - starts the Upstox login flow.
 // Visiting this URL redirects the user directly to Upstox's login page.
 export async function GET(req: NextRequest) {

@@ -3,6 +3,8 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { createSessionForUser, sessionCookieOptions } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 function hashPassword(password: string, salt: string) {
   return crypto.pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
 }

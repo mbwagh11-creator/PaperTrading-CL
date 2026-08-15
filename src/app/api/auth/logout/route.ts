@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE, hashToken } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function POST() {
   try {
     const cookieStore = cookies();

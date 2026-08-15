@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { calculatePnl } from "@/lib/calculations";
 import { getCurrentUser } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 interface Params {
   params: { id: string };
 }

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { syncNseInstruments } from "@/lib/upstox/instruments";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 // POST /api/instruments/sync - downloads Upstox's public instrument master
 // and refreshes the local searchable list. No API key required.
 export async function POST() {
