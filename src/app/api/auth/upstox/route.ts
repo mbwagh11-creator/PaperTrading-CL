@@ -1,19 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 // GET /api/auth/upstox - starts the Upstox login flow.
-// Visiting this URL redirects the user to Upstox's own login page.
-export async function GET() {
-  const apiKey = process.env.UPSTOX_API_KEY;
-  const redirectUri = process.env.UPSTOX_REDIRECT_URI;
+// Visiting this URL redirects the user directly to Upstox's login page.
+export async function GET(req: NextRequest) {
+  const session = await prisma.upstoxSession.findUnique({ where: { id: "singleton" } });
 
-  if (!apiKey || !redirectUri) {
-    return NextResponse.json(
-      {
-        error:
-          "UPSTOX_API_KEY and UPSTOX_REDIRECT_URI must be set in .env first. See README Phase 2 section.",
-      },
-      { status: 400 }
-    );
+  const apiKey = process.env.UPSTOX_API_KEY || session?.apiKey;
+  const redirectUri = process.env.UPSTOX_REDIRECT_URI || `${req.nextUrl.origin}/api/auth/upstox/callback`;
+
+  if (!apiKey) {
+    // If no API key configured yet, redirect to trades page with config modal trigger
+    const configUrl = new URL("/trades", req.nextUrl.origin);
+    configUrl.searchParams.set("configure_upstox", "1");
+    return NextResponse.redirect(configUrl);
   }
 
   const authorizeUrl = new URL("https://api.upstox.com/v2/login/authorization/dialog");

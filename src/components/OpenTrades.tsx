@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Trade {
   id: string;
@@ -14,12 +14,6 @@ interface Trade {
   target: number | null;
 }
 
-function pnlOf(t: Trade) {
-  const ref = t.currentPrice ?? t.entryPrice;
-  const diff = t.side === "BUY" ? ref - t.entryPrice : t.entryPrice - ref;
-  return Number((diff * t.quantity).toFixed(2));
-}
-
 export default function OpenTrades({
   trades,
   onChanged,
@@ -29,51 +23,113 @@ export default function OpenTrades({
 }) {
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [exitDrafts, setExitDrafts] = useState<Record<string, string>>({});
+  const [livePrices, setLivePrices] = useState<Record<string, number>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [liveErrors, setLiveErrors] = useState<Record<string, string>>({});
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null);
+  const [tickCount, setTickCount] = useState(0);
 
-  async function fetchLivePrice(id: string, instrumentKey: string) {
-    setBusyId(id);
-    setLiveErrors((prev) => ({ ...prev, [id]: "" }));
+  async function fetchSingleLivePrice(t: Trade) {
+    setBusyId(t.id);
+    setLiveErrors((prev) => ({ ...prev, [t.id]: "" }));
     try {
-      const quoteRes = await fetch(`/api/upstox/quote?instrumentKey=${encodeURIComponent(instrumentKey)}`);
-      const quoteData = await quoteRes.json();
-      if (!quoteRes.ok) throw new Error(quoteData.error || "Failed to fetch live price");
+      const params = new URLSearchParams();
+      if (t.instrumentKey) params.set("instrumentKey", t.instrumentKey);
+      params.set("symbol", t.symbol);
 
-      await fetch(`/api/trades/${id}`, {
+      const res = await fetch(`/api/upstox/quote?${params.toString()}`);
+      const data = await res.json();
+      if (!res.ok || typeof data.lastPrice !== "number") {
+        throw new Error(data.error || "Failed to fetch market price");
+      }
+
+      setLivePrices((prev) => ({ ...prev, [t.id]: data.lastPrice }));
+      setLastRefreshedAt(new Date().toLocaleTimeString("en-IN"));
+      setTickCount((c) => c + 1);
+
+      fetch(`/api/trades/${t.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPrice: quoteData.lastPrice }),
-      });
-      onChanged();
+        body: JSON.stringify({ currentPrice: data.lastPrice }),
+      }).catch(() => {});
     } catch (err: any) {
-      setLiveErrors((prev) => ({ ...prev, [id]: err.message }));
+      setLiveErrors((prev) => ({ ...prev, [t.id]: err.message }));
     } finally {
       setBusyId(null);
     }
   }
 
+  async function refreshAllPrices() {
+    if (!Array.isArray(trades) || trades.length === 0) return;
+
+    try {
+      const updates: Record<string, number> = {};
+
+      await Promise.all(
+        trades.map(async (t) => {
+          try {
+            const params = new URLSearchParams();
+            if (t.instrumentKey) params.set("instrumentKey", t.instrumentKey);
+            params.set("symbol", t.symbol);
+
+            const res = await fetch(`/api/upstox/quote?${params.toString()}`);
+            const data = await res.json();
+            if (res.ok && typeof data.lastPrice === "number") {
+              updates[t.id] = data.lastPrice;
+            }
+          } catch {
+            // ignore silent tick errors
+          }
+        })
+      );
+
+      if (Object.keys(updates).length > 0) {
+        setLivePrices((prev) => ({ ...prev, ...updates }));
+        setLastRefreshedAt(new Date().toLocaleTimeString("en-IN"));
+        setTickCount((c) => c + 1);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  useEffect(() => {
+    if (!autoRefresh || !Array.isArray(trades) || trades.length === 0) return;
+    refreshAllPrices();
+    const interval = setInterval(() => {
+      refreshAllPrices();
+    }, 500);
+    return () => clearInterval(interval);
+  }, [autoRefresh, trades.map((t) => t.id).join(",")]);
+
   async function updatePrice(id: string) {
     const val = priceDrafts[id];
     if (!val) return;
+    const numPrice = parseFloat(val);
+    if (isNaN(numPrice)) return;
+
     setBusyId(id);
+    setLivePrices((prev) => ({ ...prev, [id]: numPrice }));
     await fetch(`/api/trades/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ currentPrice: val }),
+      body: JSON.stringify({ currentPrice: numPrice }),
     });
     setBusyId(null);
-    onChanged();
   }
 
   async function closeTrade(id: string) {
     const val = exitDrafts[id];
-    if (!val) return;
+    const trade = trades.find((t) => t.id === id);
+    const fallbackPrice = trade ? livePrices[id] ?? trade.currentPrice ?? trade.entryPrice : 0;
+    const exitP = val ? parseFloat(val) : fallbackPrice;
+
     setBusyId(id);
     await fetch(`/api/trades/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ close: true, exitPrice: val }),
+      body: JSON.stringify({ close: true, exitPrice: exitP }),
     });
     setBusyId(null);
     onChanged();
@@ -81,26 +137,45 @@ export default function OpenTrades({
 
   if (!Array.isArray(trades) || trades.length === 0) {
     return (
-      <div className="bg-white/5 border border-white/10 backdrop-blur-xl rounded-2xl p-5 text-muted text-sm shadow-[0_18px_60px_rgba(0,0,0,0.25)]">
+      <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-5 text-muted text-sm shadow-lg">
         No open positions. Place a trade to see it here with live P&L.
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2 text-xs">
+        <label className="flex items-center gap-2 cursor-pointer text-slate-200">
+          <input
+            type="checkbox"
+            checked={autoRefresh}
+            onChange={(e) => setAutoRefresh(e.target.checked)}
+            className="rounded border-white/20 bg-slate-900 text-accent focus:ring-accent"
+          />
+          <span>⚡ Auto-refresh live prices (0.5s)</span>
+        </label>
+        <span className="text-muted flex items-center gap-1.5">
+          <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse" />
+          Tick #{tickCount} {lastRefreshedAt ? `• ${lastRefreshedAt}` : ""}
+        </span>
+      </div>
+
       {trades.map((t) => {
-        const pnl = pnlOf(t);
+        const currentP = livePrices[t.id] ?? t.currentPrice ?? t.entryPrice;
+        const diff = t.side === "BUY" ? currentP - t.entryPrice : t.entryPrice - currentP;
+        const pnl = Number((diff * t.quantity).toFixed(2));
+
         return (
           <div
             key={t.id}
-            className="bg-white/5 border border-white/10 backdrop-blur-xl rounded-2xl p-4 shadow-[0_18px_60px_rgba(0,0,0,0.25)] transition-all duration-200 hover:-translate-y-0.5"
+            className="bg-slate-900/80 border border-white/10 rounded-2xl p-4 shadow-lg"
           >
             <div className="flex items-center justify-between mb-3">
               <div>
-                <span className="font-medium">{t.symbol}</span>{" "}
+                <span className="font-semibold text-slate-100">{t.symbol}</span>{" "}
                 <span
-                  className={`text-xs px-2 py-0.5 rounded ${
+                  className={`text-xs px-2 py-0.5 rounded font-medium ${
                     t.side === "BUY" ? "bg-accent/20 text-accent" : "bg-danger/20 text-danger"
                   }`}
                 >
@@ -108,61 +183,62 @@ export default function OpenTrades({
                 </span>{" "}
                 <span className="text-muted text-sm">x{t.quantity}</span>
               </div>
-              <span className={`font-semibold ${pnl >= 0 ? "text-accent" : "text-danger"}`}>
-                ₹{pnl.toFixed(2)}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 text-xs text-muted mb-3">
-              <span>Entry: ₹{t.entryPrice}</span>
-              <span>SL: {t.stopLoss ?? "—"}</span>
-              <span>Target: {t.target ?? "—"}</span>
-            </div>
-
-            {t.instrumentKey && (
-              <div className="mb-2">
-                <button
-                  disabled={busyId === t.id}
-                  onClick={() => fetchLivePrice(t.id, t.instrumentKey!)}
-                  className="text-xs px-3 py-1.5 rounded-xl bg-accent/20 text-accent border border-accent/40 hover:bg-accent/30 disabled:opacity-50 transition-all duration-200"
-                >
-                  ⚡ Fetch Live Price
-                </button>
-                {liveErrors[t.id] && <p className="text-xs text-danger mt-1">{liveErrors[t.id]}</p>}
+              <div className="text-right">
+                <span className={`text-base font-bold ${pnl >= 0 ? "text-accent" : "text-danger"}`}>
+                  ₹{pnl.toFixed(2)}
+                </span>
+                <p className="text-[11px] text-muted">LTP: ₹{currentP}</p>
               </div>
-            )}
+            </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-3 gap-3 text-xs text-muted mb-3 bg-slate-950/60 p-2.5 rounded-xl">
+              <span>Entry: ₹{t.entryPrice}</span>
+              <span>SL: {t.stopLoss ? `₹${t.stopLoss}` : "—"}</span>
+              <span>Target: {t.target ? `₹${t.target}` : "—"}</span>
+            </div>
+
+            <div className="mb-3 flex items-center justify-between">
+              <button
+                disabled={busyId === t.id}
+                onClick={() => fetchSingleLivePrice(t)}
+                className="text-xs px-3 py-1.5 rounded-xl bg-accent/20 text-accent border border-accent/40 hover:bg-accent/30 disabled:opacity-50 flex items-center gap-1"
+              >
+                ⚡ {busyId === t.id ? "Fetching..." : "Fetch Live Price"}
+              </button>
+              {liveErrors[t.id] && <span className="text-xs text-danger">{liveErrors[t.id]}</span>}
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
               <input
                 type="number"
                 step="0.05"
-                placeholder="Update price"
-                className="bg-panel2 border border-border rounded-lg px-2 py-1 text-sm w-32"
+                placeholder="Manual price"
+                className="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs w-28 text-slate-200 outline-none focus:border-accent"
                 value={priceDrafts[t.id] ?? ""}
                 onChange={(e) => setPriceDrafts({ ...priceDrafts, [t.id]: e.target.value })}
               />
               <button
                 disabled={busyId === t.id}
                 onClick={() => updatePrice(t.id)}
-                className="text-sm px-3 py-1.5 rounded-xl border border-white/10 hover:border-accent disabled:opacity-50 transition-all duration-200"
+                className="text-xs px-3 py-1.5 rounded-xl border border-white/10 hover:border-accent disabled:opacity-50"
               >
-                Update
+                Set
               </button>
 
               <input
                 type="number"
                 step="0.05"
                 placeholder="Exit price"
-                className="bg-panel2 border border-border rounded-lg px-2 py-1 text-sm w-32"
+                className="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs w-28 text-slate-200 outline-none focus:border-accent ml-auto"
                 value={exitDrafts[t.id] ?? ""}
                 onChange={(e) => setExitDrafts({ ...exitDrafts, [t.id]: e.target.value })}
               />
               <button
                 disabled={busyId === t.id}
                 onClick={() => closeTrade(t.id)}
-                className="text-sm px-3 py-1.5 rounded-xl bg-danger text-white hover:brightness-95 disabled:opacity-50 transition-all duration-200 shadow-[0_8px_22px_rgba(255,72,72,0.22)]"
+                className="text-xs px-3 py-1.5 rounded-xl bg-danger text-white hover:brightness-95 disabled:opacity-50 shadow-[0_8px_22px_rgba(255,72,72,0.22)]"
               >
-                Close Trade
+                Close Position
               </button>
             </div>
           </div>

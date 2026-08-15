@@ -1,50 +1,79 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { fetchMarketQuote } from "@/lib/quotes";
 
-// GET /api/upstox/quote?instrumentKey=NSE_FO|44412
-// Fetches the current last-traded-price for one instrument using the
-// user's stored Upstox access token (from /api/auth/upstox/callback).
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+// GET /api/upstox/quote?instrumentKey=NSE_FO|44412&symbol=NIFTY
+// Fetches current last-traded-price using Upstox if connected, or
+// fallback to free public market feed / simulator engine if not connected.
 export async function GET(req: NextRequest) {
   const instrumentKey = req.nextUrl.searchParams.get("instrumentKey");
-  if (!instrumentKey) {
-    return NextResponse.json({ error: "instrumentKey is required" }, { status: 400 });
+  let symbol = req.nextUrl.searchParams.get("symbol");
+
+  if (!instrumentKey && !symbol) {
+    return NextResponse.json({ error: "instrumentKey or symbol is required" }, { status: 400 });
   }
 
+  let inst = null;
+  if (instrumentKey) {
+    inst = await prisma.instrument.findUnique({ where: { instrumentKey } });
+  } else if (symbol) {
+    inst = await prisma.instrument.findFirst({ where: { tradingSymbol: symbol } });
+  }
+
+  if (!symbol && inst) {
+    symbol = inst.tradingSymbol;
+  }
+
+  // 1. Try Upstox API if a valid session exists
   const session = await prisma.upstoxSession.findUnique({ where: { id: "singleton" } });
-  if (!session) {
-    return NextResponse.json(
-      { error: "Not connected to Upstox. Click 'Connect Upstox' first." },
-      { status: 401 }
-    );
+  
+  if (session && (instrumentKey || inst?.instrumentKey)) {
+    const keyToFetch = instrumentKey || inst?.instrumentKey;
+    try {
+      const url = new URL("https://api.upstox.com/v3/market-quote/ltp");
+      url.searchParams.set("instrument_key", keyToFetch!);
+
+      const res = await fetch(url.toString(), {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+
+      const data = await res.json();
+      if (res.ok && data.status === "success") {
+        const entry = Object.values(data.data || {}).find(
+          (v: any) => v.instrument_token === keyToFetch || v.instrument_key === keyToFetch
+        ) as { last_price?: number } | undefined;
+
+        if (entry && typeof entry.last_price === "number") {
+          return NextResponse.json({
+            lastPrice: entry.last_price,
+            provider: "Upstox Live",
+            simulated: false,
+          });
+        }
+      }
+    } catch {
+      // Fall through to public market quote engine on network/API failure
+    }
   }
 
-  const url = new URL("https://api.upstox.com/v3/market-quote/ltp");
-  url.searchParams.set("instrument_key", instrumentKey);
-
-  const res = await fetch(url.toString(), {
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${session.accessToken}`,
-    },
+  // 2. Fallback to free public market data feed + option simulation engine
+  const targetSymbol = symbol || instrumentKey || "NIFTY";
+  const quote = await fetchMarketQuote(targetSymbol, {
+    underlying: inst?.name,
+    strikePrice: inst?.strikePrice,
+    optionType: inst?.instrumentType,
+    name: inst?.name,
   });
 
-  const data = await res.json();
-
-  if (!res.ok || data.status !== "success") {
-    return NextResponse.json(
-      { error: data.errors?.[0]?.message || "Failed to fetch quote from Upstox" },
-      { status: res.status || 500 }
-    );
-  }
-
-  // Response keys look like "NSE_FO:NIFTY..." - find the entry matching our instrument_token
-  const entry = Object.values(data.data || {}).find(
-    (v: any) => v.instrument_token === instrumentKey
-  ) as { last_price?: number } | undefined;
-
-  if (!entry || entry.last_price === undefined) {
-    return NextResponse.json({ error: "No quote returned for this instrument" }, { status: 404 });
-  }
-
-  return NextResponse.json({ lastPrice: entry.last_price });
+  return NextResponse.json({
+    lastPrice: quote.lastPrice,
+    provider: quote.provider,
+    simulated: quote.provider !== "Upstox Live",
+  });
 }

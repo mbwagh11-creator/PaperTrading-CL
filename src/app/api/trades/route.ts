@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { calculateSubscriptionStatus } from "@/lib/subscription";
 
 // GET /api/trades?status=OPEN|CLOSED  (omit status to get all)
 export async function GET(req: NextRequest) {
@@ -29,8 +30,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  // Guard trade creation against expired trial
+  const sub = calculateSubscriptionStatus(user);
+  if (sub.status === "EXPIRED") {
+    return NextResponse.json(
+      {
+        error:
+          "Your 7-day free trial has expired. Please subscribe at ₹149/month on the Pricing page to place new trades.",
+        expired: true,
+      },
+      { status: 403 }
+    );
+  }
 
+  const body = await req.json();
   const { symbol, side, quantity, entryPrice, stopLoss, target, notes, instrumentKey } = body;
 
   if (!symbol || !side || !quantity || !entryPrice) {

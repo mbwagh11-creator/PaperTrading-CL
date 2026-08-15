@@ -1,8 +1,31 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { livePnl } from "@/lib/calculations";
 import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "NSE Option Trade Journal & Daily P&L Calendar | PRO-TRADER",
+  description:
+    "Track and review your NSE options paper trades with automated monthly, yearly, and daily P&L calendar breakdowns and trade logs.",
+  keywords: [
+    "NSE trade journal",
+    "daily PnL calendar trading",
+    "options trading log India",
+    "stock market trade journal app",
+    "paper trading history",
+  ],
+  alternates: {
+    canonical: "/journal",
+  },
+  openGraph: {
+    title: "NSE Trade Journal & P&L Calendar | PRO-TRADER",
+    description: "Automated daily P&L heatmap and trade history journal for Indian derivatives traders.",
+    url: "/journal",
+  },
+};
+
 
 function fmtDate(d: Date | null) {
   if (!d) return "—";

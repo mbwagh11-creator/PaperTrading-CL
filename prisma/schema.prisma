@@ -15,13 +15,17 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  name         String
-  email        String    @unique
-  passwordHash String
-  passwordSalt String
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  name               String
+  email              String    @unique
+  passwordHash       String
+  passwordSalt       String
+  subscriptionStatus String    @default("TRIAL")
+  trialEndsAt        DateTime?
+  subscriptionEndsAt DateTime?
+  paymentId          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   trades   Trade[]
   sessions Session[]
@@ -89,7 +93,9 @@ model Session {
 
 model UpstoxSession {
   id          String   @id @default("singleton")
-  accessToken String
+  accessToken String?
+  apiKey      String?
+  apiSecret   String?
   userName    String?
   updatedAt   DateTime @updatedAt
 }

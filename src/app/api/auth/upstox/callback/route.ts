@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/auth/upstox/callback - Upstox redirects here after login with ?code=...
-// We exchange that single-use code for an access_token and store it.
-// Note: Upstox access tokens expire every day at 3:30 AM IST, so you'll need
-// to click "Connect Upstox" again each trading day.
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   const errorParam = req.nextUrl.searchParams.get("error");
@@ -21,12 +18,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(appUrl);
   }
 
-  const apiKey = process.env.UPSTOX_API_KEY;
-  const apiSecret = process.env.UPSTOX_API_SECRET;
-  const redirectUri = process.env.UPSTOX_REDIRECT_URI;
+  const session = await prisma.upstoxSession.findUnique({ where: { id: "singleton" } });
 
-  if (!apiKey || !apiSecret || !redirectUri) {
-    appUrl.searchParams.set("upstox_error", "missing_env_vars");
+  const apiKey = process.env.UPSTOX_API_KEY || session?.apiKey;
+  const apiSecret = process.env.UPSTOX_API_SECRET || session?.apiSecret;
+  const redirectUri = process.env.UPSTOX_REDIRECT_URI || `${req.nextUrl.origin}/api/auth/upstox/callback`;
+
+  if (!apiKey || !apiSecret) {
+    appUrl.searchParams.set("configure_upstox", "1");
+    appUrl.searchParams.set("upstox_error", "missing_credentials");
     return NextResponse.redirect(appUrl);
   }
 
@@ -55,8 +55,15 @@ export async function GET(req: NextRequest) {
 
     await prisma.upstoxSession.upsert({
       where: { id: "singleton" },
-      create: { id: "singleton", accessToken: data.access_token, userName: data.user_name ?? null },
-      update: { accessToken: data.access_token, userName: data.user_name ?? null },
+      create: {
+        id: "singleton",
+        accessToken: data.access_token,
+        userName: data.user_name ?? null,
+      },
+      update: {
+        accessToken: data.access_token,
+        userName: data.user_name ?? null,
+      },
     });
 
     appUrl.searchParams.set("upstox_connected", "1");

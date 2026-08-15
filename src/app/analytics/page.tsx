@@ -1,8 +1,29 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { computeAnalytics } from "@/lib/calculations";
 import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Trading Analytics & Win Rate Insights | PRO-TRADER",
+  description:
+    "Analyze your NSE options and stock paper trading performance metrics: win rate, profit factor, average win/loss ratio, and drawdown analysis.",
+  keywords: [
+    "trading performance analytics",
+    "NSE options win rate tracker",
+    "trading profit factor calculator",
+    "paper trade analytics India",
+  ],
+  alternates: {
+    canonical: "/analytics",
+  },
+  openGraph: {
+    title: "Trading Performance Analytics | PRO-TRADER",
+    description: "Deep analytics for your virtual stock and options trade performance.",
+    url: "/analytics",
+  },
+};
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: "up" | "down" }) {
   const color = tone === "up" ? "text-accent" : tone === "down" ? "text-danger" : "text-white";

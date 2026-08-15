@@ -21,12 +21,15 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
   const [entryPrice, setEntryPrice] = useState("");
   const [stopLoss, setStopLoss] = useState("");
   const [target, setTarget] = useState("");
+  const [fetchingPrice, setFetchingPrice] = useState(false);
+  const [priceMsg, setPriceMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSymbolChange(value: string) {
     setSymbol(value);
-    setInstrumentKey(null); // typing freely invalidates a previous pick
+    setInstrumentKey(null);
+    setPriceMsg("");
 
     if (value.trim().length < 2) {
       setSuggestions([]);
@@ -43,12 +46,45 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
     }
   }
 
+  async function fetchCurrentPrice(targetSymbol?: string, targetKey?: string | null) {
+    const sym = (targetSymbol || symbol).trim();
+    if (!sym) {
+      setError("Please enter a symbol first.");
+      return;
+    }
+
+    setFetchingPrice(true);
+    setError("");
+    setPriceMsg("");
+    try {
+      const params = new URLSearchParams();
+      const keyToUse = targetKey !== undefined ? targetKey : instrumentKey;
+      if (keyToUse) params.set("instrumentKey", keyToUse);
+      params.set("symbol", sym);
+
+      const res = await fetch(`/api/upstox/quote?${params.toString()}`);
+      const data = await res.json();
+
+      if (!res.ok || data.lastPrice === undefined) {
+        throw new Error(data.error || "Could not fetch price");
+      }
+
+      setEntryPrice(String(data.lastPrice));
+      setPriceMsg(`Loaded ₹${data.lastPrice} (${data.provider || "Live"})`);
+    } catch (err: any) {
+      setError(`Price fetch failed: ${err.message}`);
+    } finally {
+      setFetchingPrice(false);
+    }
+  }
+
   function pickSuggestion(inst: InstrumentResult) {
     setSymbol(inst.tradingSymbol);
     setInstrumentKey(inst.instrumentKey);
     if (inst.lotSize) setQuantity(String(inst.lotSize));
     setSuggestions([]);
     setShowSuggestions(false);
+    fetchCurrentPrice(inst.tradingSymbol, inst.instrumentKey);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -87,6 +123,7 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
       setEntryPrice("");
       setStopLoss("");
       setTarget("");
+      setPriceMsg("");
       setSide("BUY");
       onCreated();
     } catch (err: any) {
@@ -108,25 +145,25 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="relative">
         <label className="text-xs text-muted block mb-1">
-          Symbol {instrumentKey && <span className="text-accent">● matched to live instrument</span>}
+          Symbol {instrumentKey && <span className="text-accent">● matched symbol</span>}
         </label>
         <input
           className={inputClass}
-          placeholder="e.g. NIFTY, RELIANCE..."
+          placeholder="e.g. NIFTY, RELIANCE, TCS..."
           value={symbol}
           onChange={(e) => handleSymbolChange(e.target.value)}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
         />
         {showSuggestions && suggestions.length > 0 && (
-          <ul className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto bg-panel2 border border-border rounded-lg text-sm">
+          <ul className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto bg-slate-900 border border-white/10 rounded-xl text-sm shadow-2xl">
             {suggestions.map((inst) => (
               <li
                 key={inst.instrumentKey}
                 onMouseDown={() => pickSuggestion(inst)}
-                className="px-3 py-2 hover:bg-border cursor-pointer flex justify-between"
+                className="px-3 py-2 hover:bg-white/10 cursor-pointer flex justify-between items-center border-b border-white/5 last:border-0"
               >
-                <span>{inst.tradingSymbol}</span>
+                <span className="font-medium text-slate-200">{inst.tradingSymbol}</span>
                 <span className="text-muted text-xs">
                   {inst.instrumentType}
                   {inst.strikePrice ? ` ${inst.strikePrice}` : ""}
@@ -134,11 +171,6 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
               </li>
             ))}
           </ul>
-        )}
-        {!instrumentKey && symbol.length >= 2 && suggestions.length === 0 && (
-          <p className="text-xs text-muted mt-1">
-            No live match — you can still submit this as a free-text symbol.
-          </p>
         )}
       </div>
 
@@ -173,19 +205,32 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
           <input
             type="number"
             className={inputClass}
+            placeholder="e.g. 50"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
           />
         </div>
         <div>
-          <label className="text-xs text-muted block mb-1">Entry Price</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs text-muted">Entry Price</label>
+            <button
+              type="button"
+              disabled={fetchingPrice || !symbol}
+              onClick={() => fetchCurrentPrice()}
+              className="text-[10px] text-accent hover:underline disabled:opacity-50"
+            >
+              {fetchingPrice ? "Fetching..." : "⚡ Get Market Price"}
+            </button>
+          </div>
           <input
             type="number"
             step="0.05"
             className={inputClass}
+            placeholder="e.g. 150.50"
             value={entryPrice}
             onChange={(e) => setEntryPrice(e.target.value)}
           />
+          {priceMsg && <p className="text-[11px] text-accent mt-1">{priceMsg}</p>}
         </div>
       </div>
 

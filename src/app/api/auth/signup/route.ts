@@ -25,19 +25,30 @@ export async function POST(req: NextRequest) {
   const salt = crypto.randomBytes(16).toString("hex");
   const passwordHash = hashPassword(password, salt);
 
+  // Set 7 days free trial
+  const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
   const user = await prisma.user.create({
     data: {
       name,
       email,
       passwordHash,
       passwordSalt: salt,
+      subscriptionStatus: "TRIAL",
+      trialEndsAt,
     },
   });
 
   const { token, expiresAt } = await createSessionForUser(user.id);
   const response = NextResponse.json({
     success: true,
-    user: { id: user.id, name: user.name, email: user.email },
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      trialEndsAt: trialEndsAt.toISOString(),
+      subscriptionStatus: "TRIAL",
+    },
   });
   response.cookies.set("protrader_session", token, sessionCookieOptions(expiresAt));
 
