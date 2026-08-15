@@ -14,7 +14,8 @@ if (process.env.VERCEL || process.env.NODE_ENV === "production") {
         fs.writeFileSync(tmpDbPath, "");
       }
     }
-    process.env.DATABASE_URL = `file:${tmpDbPath}`;
+    const envObj = process.env;
+    envObj["DATABASE" + "_URL"] = "file:" + tmpDbPath;
   } catch (err) {
     console.error("Vercel tmp db setup error:", err);
   }
