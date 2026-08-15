@@ -6,10 +6,25 @@ function getCleanDatabaseUrl(): string | undefined {
 
   if (!url) return undefined;
 
-  // Ensure valid PostgreSQL protocol prefix
-  if (!url.startsWith("postgresql://") && !url.startsWith("postgres://") && !url.startsWith("file:")) {
-    const cleanBody = url.replace(/^[a-zA-Z0-9_-]+:\/\//, "");
-    url = "postgresql://" + cleanBody;
+  // Safely handle unencoded special characters (like @ or #) in database passwords
+  if (url.startsWith("postgresql://") || url.startsWith("postgres://")) {
+    const protocol = url.startsWith("postgresql://") ? "postgresql://" : "postgres://";
+    const body = url.slice(protocol.length);
+    const lastAtIndex = body.lastIndexOf("@");
+    if (lastAtIndex !== -1) {
+      const authPart = body.slice(0, lastAtIndex);
+      const hostPart = body.slice(lastAtIndex + 1);
+      const colonIndex = authPart.indexOf(":");
+      if (colonIndex !== -1) {
+        const user = authPart.slice(0, colonIndex);
+        const pass = authPart.slice(colonIndex + 1);
+        // Only encode if not already encoded
+        if (pass.includes("@") || pass.includes("#") || pass.includes("$")) {
+          const encodedPass = encodeURIComponent(pass);
+          url = `${protocol}${user}:${encodedPass}@${hostPart}`;
+        }
+      }
+    }
   }
 
   return url;
