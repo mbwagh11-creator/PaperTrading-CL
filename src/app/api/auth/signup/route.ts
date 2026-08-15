@@ -10,42 +10,65 @@ function hashPassword(password: string, salt: string) {
 }
 
 async function ensureTablesExist() {
-  try {
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "User" (
-        "id" TEXT PRIMARY KEY,
-        "name" TEXT NOT NULL,
-        "email" TEXT UNIQUE NOT NULL,
-        "passwordHash" TEXT NOT NULL,
-        "passwordSalt" TEXT NOT NULL,
-        "subscriptionStatus" TEXT NOT NULL DEFAULT 'TRIAL',
-        "trialEndsAt" TIMESTAMP(3),
-        "subscriptionEndsAt" TIMESTAMP(3),
-        "paymentId" TEXT,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-      CREATE TABLE IF NOT EXISTS "Trade" (
-        "id" TEXT PRIMARY KEY,
-        "userId" TEXT NOT NULL,
-        "symbol" TEXT NOT NULL,
-        "instrumentKey" TEXT,
-        "side" TEXT NOT NULL,
-        "quantity" INTEGER NOT NULL,
-        "entryPrice" DOUBLE PRECISION NOT NULL,
-        "exitPrice" DOUBLE PRECISION,
-        "stopLoss" DOUBLE PRECISION,
-        "target" DOUBLE PRECISION,
-        "currentPrice" DOUBLE PRECISION,
-        "pnl" DOUBLE PRECISION,
-        "status" TEXT NOT NULL DEFAULT 'OPEN',
-        "notes" TEXT,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "closedAt" TIMESTAMP(3)
-      );
-    `);
-  } catch (e) {
-    // ignore
+  const queries = [
+    `CREATE TABLE IF NOT EXISTS "User" (
+      "id" TEXT PRIMARY KEY,
+      "name" TEXT NOT NULL,
+      "email" TEXT UNIQUE NOT NULL,
+      "passwordHash" TEXT NOT NULL,
+      "passwordSalt" TEXT NOT NULL,
+      "subscriptionStatus" TEXT NOT NULL DEFAULT 'TRIAL',
+      "trialEndsAt" TIMESTAMP(3),
+      "subscriptionEndsAt" TIMESTAMP(3),
+      "paymentId" TEXT,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE TABLE IF NOT EXISTS "Trade" (
+      "id" TEXT PRIMARY KEY,
+      "userId" TEXT NOT NULL,
+      "symbol" TEXT NOT NULL,
+      "instrumentKey" TEXT,
+      "side" TEXT NOT NULL,
+      "quantity" INTEGER NOT NULL,
+      "entryPrice" DOUBLE PRECISION NOT NULL,
+      "exitPrice" DOUBLE PRECISION,
+      "stopLoss" DOUBLE PRECISION,
+      "target" DOUBLE PRECISION,
+      "currentPrice" DOUBLE PRECISION,
+      "pnl" DOUBLE PRECISION,
+      "status" TEXT NOT NULL DEFAULT 'OPEN',
+      "notes" TEXT,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "closedAt" TIMESTAMP(3)
+    );`,
+    `CREATE TABLE IF NOT EXISTS "Instrument" (
+      "id" TEXT PRIMARY KEY,
+      "instrumentKey" TEXT UNIQUE NOT NULL,
+      "exchange" TEXT NOT NULL,
+      "tradingSymbol" TEXT NOT NULL,
+      "name" TEXT,
+      "instrumentType" TEXT,
+      "strikePrice" DOUBLE PRECISION,
+      "expiry" TEXT,
+      "lotSize" INTEGER,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE TABLE IF NOT EXISTS "Session" (
+      "id" TEXT PRIMARY KEY,
+      "userId" TEXT NOT NULL,
+      "tokenHash" TEXT UNIQUE NOT NULL,
+      "expiresAt" TIMESTAMP(3) NOT NULL,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );`
+  ];
+
+  for (const q of queries) {
+    try {
+      await prisma.$executeRawUnsafe(q);
+    } catch (err) {
+      console.error("DDL table creation step warning:", err);
+    }
   }
 }
 
@@ -60,7 +83,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name, email, and password are required" }, { status: 400 });
     }
 
-    // Auto-create PostgreSQL tables on Supabase if first time registration
+    // Auto-create PostgreSQL tables on Supabase if not present
     await ensureTablesExist();
 
     const existing = await prisma.user.findUnique({ where: { email } }).catch(() => null);
