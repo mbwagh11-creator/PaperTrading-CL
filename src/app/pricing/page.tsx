@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import PricingClient from "./PricingClient";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Pricing & 7-Day Free Trial | ₹149/mo PRO-TRADER Subscription",
   description:

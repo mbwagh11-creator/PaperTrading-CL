@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import TradesClient from "./TradesClient";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "NSE Options Paper Trading Terminal | Nifty & Bank Nifty Simulator",
   description:
