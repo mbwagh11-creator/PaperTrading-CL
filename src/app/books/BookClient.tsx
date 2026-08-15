@@ -244,62 +244,7 @@ export default function BookClient() {
         </div>
       </div>
 
-      {/* Chapter Master Comparison Summary Table */}
-      <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 space-y-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          📊 Master Strategy Comparison Table (3-Lot Sizing, 2:1 Ratio)
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-white/10 text-slate-400 bg-slate-950/80">
-                <th className="py-2.5 px-3">Daily Structure</th>
-                <th className="py-2.5 px-3">Daily EV</th>
-                <th className="py-2.5 px-3">Monthly EV (20 Days)</th>
-                <th className="py-2.5 px-3">Worst Single Day</th>
-                <th className="py-2.5 px-3">Win Days %</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 text-slate-200 font-mono">
-              <tr className="hover:bg-white/5">
-                <td className="py-2.5 px-3 font-sans">1 trade/day</td>
-                <td className="py-2.5 px-3 text-emerald-400">+₹275.00</td>
-                <td className="py-2.5 px-3 text-emerald-400">+₹5,500</td>
-                <td className="py-2.5 px-3 text-rose-400">-₹850</td>
-                <td className="py-2.5 px-3 font-bold">50.0%</td>
-              </tr>
-              <tr className="hover:bg-white/5">
-                <td className="py-2.5 px-3 font-sans">2/day (stop on win)</td>
-                <td className="py-2.5 px-3 text-emerald-400">+₹412.50</td>
-                <td className="py-2.5 px-3 text-emerald-400">+₹8,250</td>
-                <td className="py-2.5 px-3 text-rose-400">-₹1,700</td>
-                <td className="py-2.5 px-3 font-bold">75.0%</td>
-              </tr>
-              <tr className="hover:bg-white/5">
-                <td className="py-2.5 px-3 font-sans">3/day (stop after 2 wins)</td>
-                <td className="py-2.5 px-3 text-emerald-400">+₹481.25</td>
-                <td className="py-2.5 px-3 text-emerald-400">+₹9,625</td>
-                <td className="py-2.5 px-3 text-rose-400">-₹2,550</td>
-                <td className="py-2.5 px-3 font-bold">87.5%</td>
-              </tr>
-              <tr className="bg-emerald-500/10 border-l-4 border-emerald-400 font-bold">
-                <td className="py-2.5 px-3 font-sans text-emerald-300">2/day always, 3rd only if both lose (Hybrid)</td>
-                <td className="py-2.5 px-3 text-emerald-300">+₹618.75</td>
-                <td className="py-2.5 px-3 text-emerald-300">+₹12,375</td>
-                <td className="py-2.5 px-3 text-rose-400">-₹2,550</td>
-                <td className="py-2.5 px-3 text-emerald-300">75.0%</td>
-              </tr>
-              <tr className="bg-accent/20 border-l-4 border-accent font-bold text-white">
-                <td className="py-2.5 px-3 font-sans text-accent">3/day (always all three — Chosen Master Plan)</td>
-                <td className="py-2.5 px-3 text-accent">+₹825.00</td>
-                <td className="py-2.5 px-3 text-accent font-extrabold">+₹16,500</td>
-                <td className="py-2.5 px-3 text-rose-400">-₹2,550</td>
-                <td className="py-2.5 px-3 text-accent font-extrabold">87.5%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+
 
       {/* Interactive 14-Chapter Digital Reader */}
       <div className="grid md:grid-cols-12 gap-6">
