@@ -113,6 +113,15 @@ export default function Navbar() {
             Apps 📱
           </Link>
 
+          {(user?.email === "mbwagh11@gmail.com" || sub?.status === "LIFETIME") && (
+            <Link
+              href="/admin"
+              className="rounded-full px-3 py-1.5 transition-all duration-200 bg-amber-400/20 text-amber-300 border border-amber-400/30 font-bold hover:bg-amber-400/30"
+            >
+              👑 Admin
+            </Link>
+          )}
+
           {loggedIn ? (
             <div className="flex items-center gap-2 border-l border-white/10 pl-3">
               <span className="text-xs font-medium text-slate-200">
