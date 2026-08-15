@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, demoMode } = body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, demoMode, planType } = body;
 
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
@@ -34,14 +34,15 @@ export async function POST(req: NextRequest) {
     }
 
     const paymentId = razorpay_payment_id || `PAY_DEMO_${Date.now()}`;
+    const isDayPass = planType === "DAY_PASS";
+    const durationMs = isDayPass ? 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
 
-    // Add 30 days from current date (or extend active subscription)
     const now = new Date();
     const currentEnd = user.subscriptionEndsAt && new Date(user.subscriptionEndsAt) > now
       ? new Date(user.subscriptionEndsAt)
       : now;
 
-    const subscriptionEndsAt = new Date(currentEnd.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const subscriptionEndsAt = new Date(currentEnd.getTime() + durationMs);
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
@@ -54,7 +55,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "🎉 Payment verified! PRO-TRADER Monthly Plan activated for 30 days.",
+      message: isDayPass
+        ? "⚡ Payment verified! 24-Hour Day Pass activated!"
+        : "🎉 Payment verified! PRO-TRADER Monthly Plan activated for 30 days.",
       user: {
         id: updatedUser.id,
         subscriptionStatus: updatedUser.subscriptionStatus,

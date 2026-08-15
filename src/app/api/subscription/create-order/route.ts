@@ -13,7 +13,15 @@ export async function POST(req: NextRequest) {
   const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
-  const planAmountPaise = 14900; // ₹149 in paise (149 * 100)
+  let body: any = {};
+  try {
+    body = await req.json();
+  } catch {
+    // default
+  }
+
+  const planType = body.planType === "DAY_PASS" ? "DAY_PASS" : "MONTHLY";
+  const planAmountPaise = planType === "DAY_PASS" ? 1500 : 14900; // ₹15 (1500 paise) vs ₹149 (14900 paise)
 
   // If Razorpay API keys are configured, create real Razorpay Order
   if (keyId && keySecret) {
@@ -30,7 +38,7 @@ export async function POST(req: NextRequest) {
         notes: {
           userId: user.id,
           userEmail: user.email,
-          plan: "PRO_MONTHLY",
+          plan: planType,
         },
       });
 
@@ -39,6 +47,7 @@ export async function POST(req: NextRequest) {
         amount: order.amount,
         currency: order.currency,
         keyId,
+        planType,
         demoMode: false,
       });
     } catch (err: any) {
@@ -53,6 +62,7 @@ export async function POST(req: NextRequest) {
     amount: planAmountPaise,
     currency: "INR",
     keyId: keyId || "rzp_test_demo",
+    planType,
     demoMode: true,
   });
 }

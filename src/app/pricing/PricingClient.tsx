@@ -17,7 +17,7 @@ interface SubData {
 
 export default function PricingClient() {
   const [data, setData] = useState<SubData | null>(null);
-  const [subscribing, setSubscribing] = useState(false);
+  const [subscribingPlan, setSubscribingPlan] = useState<"DAY_PASS" | "MONTHLY" | null>(null);
   const [subMessage, setSubMessage] = useState("");
 
   async function loadStatus() {
@@ -48,13 +48,13 @@ export default function PricingClient() {
     });
   }
 
-  async function handleSubscribe() {
+  async function handleCheckout(planType: "DAY_PASS" | "MONTHLY") {
     if (!data?.loggedIn) {
       window.location.href = "/login";
       return;
     }
 
-    setSubscribing(true);
+    setSubscribingPlan(planType);
     setSubMessage("");
 
     try {
@@ -62,6 +62,7 @@ export default function PricingClient() {
       const orderRes = await fetch("/api/subscription/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planType }),
       });
 
       const orderData = await orderRes.json();
@@ -75,13 +76,18 @@ export default function PricingClient() {
           body: JSON.stringify({
             razorpay_order_id: orderData.orderId,
             razorpay_payment_id: `PAY_TEST_${Date.now()}`,
+            planType,
             demoMode: true,
           }),
         });
         const verifyData = await verifyRes.json();
         if (!verifyRes.ok) throw new Error(verifyData.error || "Verification failed");
 
-        setSubMessage("🎉 Subscription activated! (Demo Mode — Add RAZORPAY_KEY_ID to .env to receive live payments)");
+        setSubMessage(
+          planType === "DAY_PASS"
+            ? "⚡ 24-Hour Day Pass activated! (Demo Mode)"
+            : "🎉 Monthly Subscription activated! (Demo Mode)"
+        );
         loadStatus();
         return;
       }
@@ -92,12 +98,14 @@ export default function PricingClient() {
         throw new Error("Razorpay SDK failed to load. Please check your internet connection.");
       }
 
+      const planTitle = planType === "DAY_PASS" ? "24-Hour Day Pass (₹15)" : "Monthly PRO Plan (₹149/mo)";
+
       const options = {
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
         name: "PRO-TRADER",
-        description: "Monthly PRO Subscription Plan (₹149/mo)",
+        description: planTitle,
         order_id: orderData.orderId,
         handler: async function (response: any) {
           try {
@@ -108,6 +116,7 @@ export default function PricingClient() {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
+                planType,
                 demoMode: false,
               }),
             });
@@ -115,7 +124,7 @@ export default function PricingClient() {
             const verifyData = await verifyRes.json();
             if (!verifyRes.ok) throw new Error(verifyData.error || "Payment verification failed");
 
-            setSubMessage("🎉 Payment successful! PRO-TRADER subscription is active.");
+            setSubMessage(`🎉 Payment successful! ${planTitle} activated.`);
             loadStatus();
           } catch (err: any) {
             setSubMessage(`Verification error: ${err.message}`);
@@ -135,7 +144,7 @@ export default function PricingClient() {
     } catch (err: any) {
       setSubMessage(`Checkout error: ${err.message}`);
     } finally {
-      setSubscribing(false);
+      setSubscribingPlan(null);
     }
   }
 
@@ -147,127 +156,157 @@ export default function PricingClient() {
       <div className="rounded-3xl border border-white/10 bg-gradient-to-r from-emerald-950/40 via-slate-900/80 to-slate-950 backdrop-blur-xl shadow-[0_20px_80px_rgba(0,0,0,0.35)] p-8 md:p-10">
         <div className="space-y-3">
           <p className="text-accent text-xs md:text-sm font-semibold uppercase tracking-[0.2em]">
-            Subscription Plans
+            Flexible Trader Plans
           </p>
           <h1 className="text-3xl md:text-5xl font-extrabold text-white">
-            7 Days Free Trial, then <span className="text-accent">₹149/month</span>
+            Choose Your <span className="text-accent">Paper Trading Pass</span>
           </h1>
           <p className="text-slate-300 max-w-3xl text-sm md:text-base leading-relaxed">
-            Full access to NSE stock and option paper trading, real-time market data quotes, live position P&L tracking, and performance analytics.
+            Practice NSE options & stock paper trades risk-free. Pick a 24-hour day pass for quick strategy testing or go monthly for unlimited access.
           </p>
         </div>
       </div>
 
-      {/* Subscription Card */}
-      <div className="max-w-2xl mx-auto">
-        <div className="rounded-3xl border border-accent/50 bg-gradient-to-b from-accent/10 via-slate-900/90 to-slate-950 p-8 shadow-[0_0_0_1px_rgba(97,255,201,0.2),0_25px_70px_rgba(20,185,130,0.25)] space-y-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <span className="text-xs font-semibold uppercase px-3 py-1 rounded-full bg-accent text-black">
-                Unlimited Access
-              </span>
-              <h2 className="text-2xl font-bold text-white mt-3">PRO-TRADER Plan</h2>
-              <p className="text-muted text-sm mt-1">
-                7 days free trial (₹0), then ₹149 per month. Cancel anytime.
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-4xl font-extrabold text-white">₹149</span>
-              <span className="text-muted text-sm block">/ month</span>
-            </div>
-          </div>
+      {subMessage && (
+        <div
+          className={`max-w-4xl mx-auto p-4 rounded-2xl text-center text-sm font-bold border ${
+            subMessage.includes("successful") || subMessage.includes("activated")
+              ? "bg-emerald-950/50 text-emerald-300 border-emerald-500/40"
+              : "bg-rose-950/50 text-rose-300 border-rose-500/40"
+          }`}
+        >
+          {subMessage}
+        </div>
+      )}
 
-          <div className="rounded-2xl border border-accent/40 bg-accent/10 p-4 text-sm flex items-center justify-between text-accent">
-            <span className="font-semibold">✨ 7 Days Free Trial Included</span>
-            <span className="text-xs text-slate-300">₹0 charged today</span>
-          </div>
-
-          <ul className="space-y-3 text-sm">
-            {[
-              "Unlimited NSE options & stock paper trades",
-              "Real-time market quotes & auto-price updates",
-              "Live option premium calculator (CE / PE strikes)",
-              "Live position P&L tracking with 5s auto-refresh",
-              "Performance analytics, win rates & trade journal",
-              "Optional Upstox broker API connection",
-            ].map((feature) => (
-              <li key={feature} className="flex items-center gap-3 text-slate-200">
-                <span className="w-5 h-5 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">
-                  ✓
+      {/* Subscription Cards Grid */}
+      <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto items-stretch">
+        {/* PLAN 1: 24-Hour Day Pass (₹15) */}
+        <div className="rounded-3xl border border-amber-400/40 bg-gradient-to-b from-amber-500/10 via-slate-900/90 to-slate-950 p-8 shadow-xl flex flex-col justify-between space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold uppercase px-3 py-1 rounded-full bg-amber-400 text-black">
+                  ⚡ 24-Hour Day Pass
                 </span>
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-
-          {/* Current Status Box if logged in */}
-          {data?.loggedIn && sub && (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs space-y-1 text-slate-300">
-              <div className="flex justify-between items-center font-medium text-sm">
-                <span>Account Status:</span>
-                <span
-                  className={
-                    sub.status === "ACTIVE"
-                      ? "text-accent font-bold"
-                      : sub.status === "TRIAL"
-                      ? "text-emerald-400 font-bold"
-                      : "text-danger font-bold"
-                  }
-                >
-                  {sub.status === "ACTIVE" && "🟢 PRO Active"}
-                  {sub.status === "TRIAL" && `⚡ Free Trial Active (${sub.trialDaysRemaining} days remaining)`}
-                  {sub.status === "EXPIRED" && "⚠️ Trial Expired"}
-                </span>
+                <h2 className="text-2xl font-bold text-white mt-3">Daily Trader Pass</h2>
+                <p className="text-slate-300 text-xs mt-1">
+                  Perfect for quick weekend testing or 1-day trading practice.
+                </p>
               </div>
-              {sub.trialEndsAt && sub.status === "TRIAL" && (
-                <p className="text-muted">Trial ends on: {new Date(sub.trialEndsAt).toLocaleDateString("en-IN")}</p>
-              )}
-              {sub.subscriptionEndsAt && sub.status === "ACTIVE" && (
-                <p className="text-muted">Plan renews on: {new Date(sub.subscriptionEndsAt).toLocaleDateString("en-IN")}</p>
-              )}
+              <div className="text-right shrink-0">
+                <span className="text-4xl font-extrabold text-amber-300">₹15</span>
+                <span className="text-slate-400 text-xs block">/ 24 Hours</span>
+              </div>
             </div>
-          )}
 
-          {/* Action Button */}
+            <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-xs text-amber-200 font-medium">
+              ⚡ Instant 24-hour full access to place trades & option chain
+            </div>
+
+            <ul className="space-y-2.5 text-xs text-slate-300">
+              <li className="flex items-center gap-2">
+                <span className="text-amber-400 font-bold">✓</span>
+                <span>24 Hours unlimited NSE paper trading</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-amber-400 font-bold">✓</span>
+                <span>Real-time NSE option chain & live quotes</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-amber-400 font-bold">✓</span>
+                <span>Risk/Reward position sizing calculator</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-amber-400 font-bold">✓</span>
+                <span>Permanent trade journal & analytics log</span>
+              </li>
+            </ul>
+          </div>
+
           {!data?.loggedIn ? (
             <Link
               href="/login"
-              className="block w-full text-center rounded-xl bg-accent px-4 py-3.5 font-bold text-black text-base hover:brightness-95 transition-all shadow-[0_10px_30px_rgba(97,255,201,0.25)]"
+              className="block w-full text-center rounded-xl bg-amber-400 px-4 py-3 font-bold text-black text-sm hover:brightness-95 transition-all"
+            >
+              Get 24-Hour Pass (₹15)
+            </Link>
+          ) : (
+            <button
+              onClick={() => handleCheckout("DAY_PASS")}
+              disabled={subscribingPlan !== null}
+              className="w-full rounded-xl bg-amber-400 px-4 py-3 font-bold text-black text-sm hover:brightness-95 transition-all disabled:opacity-50"
+            >
+              {subscribingPlan === "DAY_PASS" ? "Processing..." : "Buy 24-Hour Day Pass (₹15)"}
+            </button>
+          )}
+        </div>
+
+        {/* PLAN 2: Monthly PRO Plan (₹149/mo) */}
+        <div className="rounded-3xl border border-emerald-400/50 bg-gradient-to-b from-emerald-500/10 via-slate-900/90 to-slate-950 p-8 shadow-[0_0_0_1px_rgba(97,255,201,0.2),0_25px_70px_rgba(20,185,130,0.25)] flex flex-col justify-between space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold uppercase px-3 py-1 rounded-full bg-emerald-400 text-black">
+                  👑 Most Popular
+                </span>
+                <h2 className="text-2xl font-bold text-white mt-3">Monthly PRO Plan</h2>
+                <p className="text-slate-300 text-xs mt-1">
+                  Includes 7 Days Free Trial (₹0), then ₹149/month. Cancel anytime.
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-4xl font-extrabold text-emerald-300">₹149</span>
+                <span className="text-slate-400 text-xs block">/ Month</span>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-3 text-xs text-emerald-200 font-medium">
+              ✨ 7 Days Free Trial Included (₹0 charged today)
+            </div>
+
+            <ul className="space-y-2.5 text-xs text-slate-300">
+              <li className="flex items-center gap-2">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span>30 Days unlimited NSE options & stock paper trades</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span>Interactive Option Chain matrix with 1-click execution</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span>Real-time Risk/Reward calculator</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span>Monthly P&L calendar heatmap & performance analytics</span>
+              </li>
+            </ul>
+          </div>
+
+          {!data?.loggedIn ? (
+            <Link
+              href="/login"
+              className="block w-full text-center rounded-xl bg-emerald-400 px-4 py-3 font-bold text-black text-sm hover:brightness-95 transition-all"
             >
               Start 7-Day Free Trial (₹0)
             </Link>
           ) : sub?.status === "ACTIVE" ? (
-            <div className="space-y-2">
-              <button
-                disabled
-                className="w-full rounded-xl bg-accent/20 border border-accent text-accent px-4 py-3.5 font-bold text-base cursor-default"
-              >
-                ✓ Subscription Active
-              </button>
-              <p className="text-center text-xs text-muted">Thank you for subscribing to PRO-TRADER!</p>
-            </div>
+            <button
+              disabled
+              className="w-full rounded-xl bg-emerald-400/20 border border-emerald-400 text-emerald-300 px-4 py-3 font-bold text-sm cursor-default"
+            >
+              ✓ PRO Subscription Active
+            </button>
           ) : (
             <button
-              onClick={handleSubscribe}
-              disabled={subscribing}
-              className="w-full rounded-xl bg-accent px-4 py-3.5 font-bold text-black text-base hover:brightness-95 transition-all disabled:opacity-50 shadow-[0_10px_30px_rgba(97,255,201,0.25)]"
+              onClick={() => handleCheckout("MONTHLY")}
+              disabled={subscribingPlan !== null}
+              className="w-full rounded-xl bg-emerald-400 px-4 py-3 font-bold text-black text-sm hover:brightness-95 transition-all disabled:opacity-50"
             >
-              {subscribing
-                ? "Processing Checkout..."
-                : sub?.status === "TRIAL"
-                ? "Subscribe Now (₹149 / month)"
-                : "Unlock Full Access (₹149 / month)"}
+              {subscribingPlan === "MONTHLY" ? "Processing..." : "Subscribe Monthly (₹149 / month)"}
             </button>
-          )}
-
-          {subMessage && (
-            <p
-              className={`text-center text-xs font-semibold p-2.5 rounded-xl ${
-                subMessage.includes("successful") ? "bg-accent/20 text-accent" : "bg-danger/20 text-danger"
-              }`}
-            >
-              {subMessage}
-            </p>
           )}
         </div>
       </div>
