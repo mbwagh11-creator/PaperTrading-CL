@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import TradeForm from "@/components/TradeForm";
 import OpenTrades from "@/components/OpenTrades";
+import OptionChain from "@/components/OptionChain";
 
 interface Trade {
   id: string;
@@ -22,6 +23,7 @@ export default function TradesClient() {
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [marketStatusText, setMarketStatusText] = useState("Connecting to Live Real NSE Data Feed...");
   const [isMarketOpen, setIsMarketOpen] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<{ symbol: string; entryPrice: number; quantity: number } | null>(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -111,8 +113,11 @@ export default function TradesClient() {
         </span>
       </div>
 
+      {/* Feature 1: Interactive Option Chain Table */}
+      <OptionChain onSelectOption={(opt) => setSelectedOption(opt)} />
+
       <div className="grid md:grid-cols-[380px_1fr] gap-6 items-start">
-        <TradeForm onCreated={refreshSilent} />
+        <TradeForm onCreated={refreshSilent} selectedOption={selectedOption} />
         <div>
           <h2 className="font-semibold mb-3">Open Positions</h2>
           {loading ? (

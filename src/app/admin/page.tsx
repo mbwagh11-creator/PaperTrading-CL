@@ -25,7 +25,9 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [actionMsg, setActionMsg] = useState("");
 
   async function fetchAdminStats() {
     setLoading(true);
@@ -44,6 +46,27 @@ export default function AdminDashboardPage() {
     }
   }
 
+  async function handleAdminAction(action: "extend_trial" | "grant_pro" | "grant_lifetime", userId: string) {
+    setActionLoadingId(userId);
+    setActionMsg("");
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Admin action failed");
+
+      setActionMsg(data.message);
+      fetchAdminStats();
+    } catch (err: any) {
+      setActionMsg(`❌ ${err.message}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  }
+
   useEffect(() => {
     fetchAdminStats();
   }, []);
@@ -56,9 +79,9 @@ export default function AdminDashboardPage() {
             <span className="text-xs font-bold text-accent tracking-widest uppercase bg-accent/10 px-3 py-1 rounded-full border border-accent/30">
               👑 Owner Control Panel
             </span>
-            <h1 className="mt-2 text-3xl font-extrabold">Subscriber & User Analytics</h1>
+            <h1 className="mt-2 text-3xl font-extrabold">Subscriber & User Management</h1>
             <p className="text-sm text-slate-400">
-              Live real-time monitoring of registered traders, active PRO subscribers, and platform usage.
+              Live real-time monitoring of registered traders, active PRO subscribers, and 1-click user management.
             </p>
           </div>
           <div className="flex gap-3">
@@ -76,6 +99,13 @@ export default function AdminDashboardPage() {
             </Link>
           </div>
         </div>
+
+        {actionMsg && (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs font-semibold text-emerald-300 flex justify-between items-center">
+            <span>{actionMsg}</span>
+            <button onClick={() => setActionMsg("")} className="text-slate-400 hover:text-white">✕</button>
+          </div>
+        )}
 
         {error ? (
           <div className="rounded-2xl border border-rose-500/30 bg-rose-950/40 p-6 text-center space-y-3">
@@ -123,7 +153,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Users Table */}
+            {/* Users Directory & 1-Click Actions Table */}
             <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/60 p-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-bold">Registered Users Directory</h2>
@@ -139,8 +169,8 @@ export default function AdminDashboardPage() {
                       <tr>
                         <th className="py-3 px-3">Trader Name</th>
                         <th className="py-3 px-3">Email Address</th>
-                        <th className="py-3 px-3">Joined Date</th>
                         <th className="py-3 px-3">Status</th>
+                        <th className="py-3 px-3 text-right">Owner Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -148,13 +178,6 @@ export default function AdminDashboardPage() {
                         <tr key={u.id} className="hover:bg-white/5 transition-colors">
                           <td className="py-3 px-3 font-semibold text-white">{u.name}</td>
                           <td className="py-3 px-3 text-slate-300 font-mono">{u.email}</td>
-                          <td className="py-3 px-3 text-slate-400">
-                            {new Date(u.createdAt).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </td>
                           <td className="py-3 px-3">
                             <span
                               className={`inline-block px-2.5 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider ${
@@ -177,6 +200,26 @@ export default function AdminDashboardPage() {
                                 ? "⚡ 7-DAY TRIAL"
                                 : "🔴 EXPIRED"}
                             </span>
+                          </td>
+
+                          {/* Feature 5: Owner Action Buttons */}
+                          <td className="py-3 px-3 text-right">
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                disabled={actionLoadingId === u.id}
+                                onClick={() => handleAdminAction("extend_trial", u.id)}
+                                className="px-2 py-1 rounded-lg bg-amber-400/10 text-amber-300 border border-amber-400/30 text-[10px] font-bold hover:bg-amber-400/20 transition-all disabled:opacity-50"
+                              >
+                                +7 Days Trial
+                              </button>
+                              <button
+                                disabled={actionLoadingId === u.id}
+                                onClick={() => handleAdminAction("grant_pro", u.id)}
+                                className="px-2 py-1 rounded-lg bg-emerald-400/10 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold hover:bg-emerald-400/20 transition-all disabled:opacity-50"
+                              >
+                                Grant PRO
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

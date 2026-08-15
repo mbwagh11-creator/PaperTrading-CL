@@ -11,7 +11,12 @@ interface InstrumentResult {
   lotSize: number | null;
 }
 
-export default function TradeForm({ onCreated }: { onCreated: () => void }) {
+interface TradeFormProps {
+  onCreated: () => void;
+  selectedOption?: { symbol: string; entryPrice: number; quantity: number } | null;
+}
+
+export default function TradeForm({ onCreated, selectedOption }: TradeFormProps) {
   const [symbol, setSymbol] = useState("");
   const [instrumentKey, setInstrumentKey] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<InstrumentResult[]>([]);
@@ -26,6 +31,24 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [isMarketOpen, setIsMarketOpen] = useState(false);
+
+  // Auto-fill from Option Chain selection
+  useEffect(() => {
+    if (selectedOption) {
+      setSymbol(selectedOption.symbol);
+      setEntryPrice(String(selectedOption.entryPrice));
+      setQuantity(String(selectedOption.quantity));
+      setSide("BUY");
+      setPriceMsg(`Selected ${selectedOption.symbol} @ ₹${selectedOption.entryPrice}`);
+
+      // Auto-calculate suggested default Stop Loss (15%) and Target (30%)
+      const price = selectedOption.entryPrice;
+      const slVal = Number((price * 0.85).toFixed(2));
+      const targetVal = Number((price * 1.3).toFixed(2));
+      setStopLoss(String(slVal));
+      setTarget(String(targetVal));
+    }
+  }, [selectedOption]);
 
   useEffect(() => {
     async function checkMarket() {
@@ -107,7 +130,9 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
     setError("");
 
     if (!isMarketOpen) {
-      setError("Order Rejected: NSE Market is currently CLOSED. Trading is strictly permitted only during live exchange hours (Mon-Fri 9:15 AM - 3:30 PM IST).");
+      setError(
+        "Order Rejected: NSE Market is currently CLOSED. Trading is strictly permitted only during live exchange hours (Mon-Fri 9:15 AM - 3:30 PM IST)."
+      );
       return;
     }
 
@@ -153,6 +178,19 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
     }
   }
 
+  // Real-Time Risk / Reward & Position Sizing Calculation
+  const qNum = parseFloat(quantity) || 0;
+  const eNum = parseFloat(entryPrice) || 0;
+  const slNum = parseFloat(stopLoss) || 0;
+  const tgNum = parseFloat(target) || 0;
+
+  const hasRiskCalc = qNum > 0 && eNum > 0 && slNum > 0 && tgNum > 0;
+  const riskPerUnit = Math.abs(eNum - slNum);
+  const rewardPerUnit = Math.abs(tgNum - eNum);
+  const maxLoss = Number((riskPerUnit * qNum).toFixed(2));
+  const maxProfit = Number((rewardPerUnit * qNum).toFixed(2));
+  const rrRatio = riskPerUnit > 0 ? (rewardPerUnit / riskPerUnit).toFixed(2) : "0";
+
   const inputClass =
     "w-full bg-slate-900/70 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-accent/70 focus:ring-2 focus:ring-accent/20";
 
@@ -162,7 +200,7 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
       className="bg-white/5 border border-white/10 backdrop-blur-xl rounded-2xl p-5 space-y-4 shadow-[0_18px_60px_rgba(0,0,0,0.25)]"
     >
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold">New Paper Trade</h2>
+        <h2 className="font-semibold">New Paper Trade Order</h2>
         <span
           className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
             isMarketOpen
@@ -180,7 +218,7 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
         </label>
         <input
           className={inputClass}
-          placeholder="e.g. NIFTY, RELIANCE, TCS..."
+          placeholder="e.g. NIFTY 24500 CE, BANKNIFTY 52000 PE..."
           value={symbol}
           onChange={(e) => handleSymbolChange(e.target.value)}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
@@ -232,7 +270,7 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-muted block mb-1">Quantity</label>
+          <label className="text-xs text-muted block mb-1">Quantity (Lots)</label>
           <input
             type="number"
             className={inputClass}
@@ -261,32 +299,56 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
             value={entryPrice}
             onChange={(e) => setEntryPrice(e.target.value)}
           />
-          {priceMsg && <p className="text-[11px] text-accent mt-1">{priceMsg}</p>}
+          {priceMsg && <p className="text-[11px] text-accent mt-1 font-medium">{priceMsg}</p>}
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-muted block mb-1">Stop Loss (optional)</label>
+          <label className="text-xs text-muted block mb-1">Stop Loss (₹)</label>
           <input
             type="number"
             step="0.05"
             className={inputClass}
+            placeholder="e.g. 125.00"
             value={stopLoss}
             onChange={(e) => setStopLoss(e.target.value)}
           />
         </div>
         <div>
-          <label className="text-xs text-muted block mb-1">Target (optional)</label>
+          <label className="text-xs text-muted block mb-1">Target (₹)</label>
           <input
             type="number"
             step="0.05"
             className={inputClass}
+            placeholder="e.g. 200.00"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
           />
         </div>
       </div>
+
+      {/* Feature 3: Real-Time Risk / Reward & Position Sizing Calculator */}
+      {hasRiskCalc && (
+        <div className="rounded-xl border border-white/10 bg-slate-900/90 p-3 text-xs space-y-1.5 shadow-inner">
+          <div className="flex justify-between items-center text-slate-300 font-semibold border-b border-white/10 pb-1.5">
+            <span>⚖️ Risk / Reward Analysis</span>
+            <span className="text-emerald-400 font-extrabold bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/30">
+              Ratio 1 : {rrRatio}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <div>
+              <span className="text-slate-400">Max Risk (Loss):</span>
+              <p className="font-extrabold text-rose-400 text-sm">₹{maxLoss.toLocaleString("en-IN")}</p>
+            </div>
+            <div>
+              <span className="text-slate-400">Max Profit Target:</span>
+              <p className="font-extrabold text-emerald-400 text-sm">₹{maxProfit.toLocaleString("en-IN")}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && <p className="text-rose-400 text-xs bg-rose-950/40 p-2.5 rounded-xl border border-rose-500/30">{error}</p>}
 
@@ -295,11 +357,11 @@ export default function TradeForm({ onCreated }: { onCreated: () => void }) {
         disabled={submitting || !isMarketOpen}
         className={`w-full font-medium py-2.5 rounded-xl transition-all duration-200 ${
           isMarketOpen
-            ? "bg-accent text-black hover:brightness-95 shadow-[0_10px_24px_rgba(97,255,201,0.18)] cursor-pointer"
+            ? "bg-accent text-black hover:brightness-95 shadow-[0_10px_24px_rgba(97,255,201,0.18)] cursor-pointer font-bold"
             : "bg-slate-800 text-slate-500 cursor-not-allowed border border-white/10"
         }`}
       >
-        {submitting ? "Placing..." : isMarketOpen ? "Place Trade" : "🔒 Market Closed (Trading Disabled)"}
+        {submitting ? "Placing Order..." : isMarketOpen ? "Place Trade Order" : "🔒 Market Closed (Trading Disabled)"}
       </button>
     </form>
   );
