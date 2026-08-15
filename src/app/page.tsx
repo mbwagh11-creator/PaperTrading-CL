@@ -119,21 +119,21 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        {/* Upstox Integration Highlight */}
+        {/* Standalone Market Feed Highlight */}
         <section className="rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-950 p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-3">
             <span className="text-xs font-semibold text-accent uppercase tracking-wider">
-              Optional Broker API Connection
+              100% Free & Automated
             </span>
             <h3 className="text-2xl font-bold text-white">
-              Connect Upstox for Live Market Ticks
+              Instant Real-Time NSE Market Feed
             </h3>
             <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
-              Integrate your Upstox API credentials directly into PRO-TRADER to fetch official live market quotes and execute virtual paper trades matched against exact market ticks.
+              Paper trade Nifty 50, Bank Nifty, and stock options with automated live market price updates. Zero broker account or API key configuration needed.
             </p>
           </div>
           <Link
-            href="/login"
+            href="/pricing"
             className="whitespace-nowrap bg-accent text-black font-bold text-sm px-6 py-3 rounded-xl hover:brightness-105 transition-all"
           >
             Create Free Account →

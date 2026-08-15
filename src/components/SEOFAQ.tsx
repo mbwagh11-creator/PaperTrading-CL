@@ -19,9 +19,9 @@ const FAQ_ITEMS = [
       "PRO-TRADER fetches real-time market data quotes from NSE indices and stocks. Option strike premiums (Call & Put options) are calculated dynamically using Black-Scholes pricing models, current spot prices, and volatility models, updated continuously.",
   },
   {
-    question: "Can I connect my Upstox broker account?",
+    question: "Do I need a broker account or API keys?",
     answer:
-      "Yes, PRO-TRADER features seamless integration with Upstox API. You can fetch live market feeds and execute virtual orders synced directly with market ticks.",
+      "No! PRO-TRADER runs on a 100% standalone, real-time NSE market quote engine. You can start paper trading immediately without connecting any broker accounts or API keys.",
   },
   {
     question: "How does the Trade Journal work?",
