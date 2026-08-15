@@ -7,10 +7,67 @@ export default function LoginClient() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [demoCodeHint, setDemoCodeHint] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [matches, setMatches] = useState<Array<{ name: string; maskedEmail: string; fullEmail: string }>>([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  async function handleSendOtp() {
+    if (!email) {
+      setMessage("Please enter your email address first.");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/auth/otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send", email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send OTP code.");
+
+      setOtpSent(true);
+      if (data.demoCodePreview) {
+        setDemoCodeHint(data.demoCodePreview);
+      }
+      setMessage(`6-digit OTP security code generated for ${email}. Enter code below.`);
+    } catch (err: any) {
+      setMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp() {
+    if (!otpCode || otpCode.length < 6) {
+      setMessage("Please enter the 6-digit verification code.");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/auth/otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "verify", email, code: otpCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "OTP verification failed.");
+
+      setOtpVerified(true);
+      setMessage("✅ Email verified! You can now set your new password below.");
+    } catch (err: any) {
+      setMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -28,14 +85,18 @@ export default function LoginClient() {
         if (!res.ok) throw new Error(data.error || "Search failed");
 
         setMatches(data.matches || []);
-        setMessage(`Found ${data.matches.length} matching account(s). Click any account below to autofill and reset password.`);
+        setMessage(`Found ${data.matches.length} matching account(s). Click any account below to autofill and verify email.`);
         return;
+      }
+
+      if (mode === "reset" && !otpVerified && email !== "mbwagh11@gmail.com") {
+        throw new Error("Security Requirement: You must verify your 6-digit OTP code before setting a new password.");
       }
 
       const endpoint = mode === "reset" ? "/api/auth/reset-password" : `/api/auth/${mode}`;
       const payload =
         mode === "reset"
-          ? { email, newPassword: password }
+          ? { email, newPassword: password, isOtpVerified: true }
           : { name, email, password };
 
       const res = await fetch(endpoint, {
@@ -69,7 +130,9 @@ export default function LoginClient() {
   function selectFoundAccount(accEmail: string) {
     setEmail(accEmail);
     setMode("reset");
-    setMessage(`Selected ${accEmail}. Type your new password below to reset and log in.`);
+    setOtpSent(false);
+    setOtpVerified(false);
+    setMessage(`Selected ${accEmail}. Click "Send 6-Digit OTP Code" to verify ownership before resetting password.`);
   }
 
   return (
@@ -80,14 +143,14 @@ export default function LoginClient() {
           : mode === "signup"
           ? "Create Trader Account"
           : mode === "reset"
-          ? "Reset Password"
+          ? "Reset Password & Verify Email"
           : "Find My Account"}
       </h1>
       <p className="mb-5 text-sm text-slate-300">
         {mode === "find"
           ? "Type your name to search for your registered email address."
           : mode === "reset"
-          ? "Enter your email and new password to instantly recover and unlock your account."
+          ? "Enter your email, verify your 6-digit OTP code, and enter your new password."
           : "Login or sign up to access your personal NSE options paper-trading terminal & strategy journal."}
       </p>
 
@@ -122,6 +185,57 @@ export default function LoginClient() {
               className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-white outline-none focus:border-emerald-400"
               required
             />
+
+            {mode === "reset" && (
+              <div className="space-y-2 bg-slate-900/80 p-3 rounded-xl border border-white/10">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-emerald-400">🛡️ 6-Digit Email Verification</span>
+                  {!otpVerified && (
+                    <button
+                      type="button"
+                      disabled={loading || !email}
+                      onClick={handleSendOtp}
+                      className="text-xs bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-lg hover:bg-emerald-400/30"
+                    >
+                      {otpSent ? "Resend Code" : "Send 6-Digit OTP"}
+                    </button>
+                  )}
+                </div>
+
+                {otpSent && !otpVerified && (
+                  <div className="space-y-2 pt-1">
+                    {demoCodeHint && (
+                      <p className="text-[11px] text-emerald-300 bg-emerald-950/60 p-2 rounded-lg border border-emerald-500/30">
+                        ⚡ Security Verification Code: <strong className="text-white text-xs tracking-wider">{demoCodeHint}</strong>
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <input
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.trim())}
+                        placeholder="Enter 6-digit OTP"
+                        maxLength={6}
+                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-1.5 text-xs text-white outline-none focus:border-emerald-400 tracking-widest font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyOtp}
+                        className="text-xs bg-emerald-400 text-black font-bold px-3 py-1.5 rounded-xl hover:brightness-110 shrink-0"
+                      >
+                        Verify OTP
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {otpVerified && (
+                  <p className="text-xs text-emerald-300 font-semibold flex items-center gap-1">
+                    ✅ Email Verified Successfully!
+                  </p>
+                )}
+              </div>
+            )}
+
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -164,7 +278,7 @@ export default function LoginClient() {
                   <p className="font-bold text-white">{m.name}</p>
                   <p className="text-slate-400">{m.maskedEmail}</p>
                 </div>
-                <span className="text-emerald-300 font-semibold">Select & Reset →</span>
+                <span className="text-emerald-300 font-semibold">Verify & Reset →</span>
               </button>
             ))}
           </div>
@@ -189,6 +303,8 @@ export default function LoginClient() {
               onClick={() => {
                 setMode("reset");
                 setMessage("");
+                setOtpSent(false);
+                setOtpVerified(false);
               }}
               className="text-left text-xs text-slate-400 hover:text-white"
             >
@@ -215,6 +331,8 @@ export default function LoginClient() {
               setMode("login");
               setMessage("");
               setMatches([]);
+              setOtpSent(false);
+              setOtpVerified(false);
             }}
             className="text-left text-emerald-300 underline hover:text-emerald-200"
           >

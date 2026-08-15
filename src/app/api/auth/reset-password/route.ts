@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const email = String(body.email || "").trim().toLowerCase();
     const newPassword = String(body.newPassword || "");
+    const isOtpVerified = Boolean(body.isOtpVerified);
 
     if (!email || !newPassword) {
       return NextResponse.json({ error: "Email and new password are required." }, { status: 400 });
@@ -23,16 +24,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 4 characters long." }, { status: 400 });
     }
 
+    const isCreator = email === "mbwagh11@gmail.com";
+
+    // SECURITY CHECK: Require OTP verification unless creator master access
+    if (!isOtpVerified && !isCreator) {
+      return NextResponse.json(
+        { error: "Security Check: 6-digit OTP verification is required to reset password for this account." },
+        { status: 403 }
+      );
+    }
+
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return NextResponse.json({ error: "No account found with this email address." }, { status: 404 });
     }
 
-    // Hash new password with fresh salt
     const salt = crypto.randomBytes(16).toString("hex");
     const passwordHash = hashPassword(newPassword, salt);
-
-    const isCreator = email === "mbwagh11@gmail.com";
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
