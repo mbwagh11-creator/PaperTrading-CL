@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 interface SubStatus {
-  status: "TRIAL" | "ACTIVE" | "EXPIRED";
+  status: "TRIAL" | "ACTIVE" | "EXPIRED" | "LIFETIME" | string;
   trialDaysRemaining: number;
   planName: string;
 }
