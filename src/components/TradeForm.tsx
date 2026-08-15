@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 interface InstrumentResult {
   instrumentKey: string;
@@ -31,6 +32,7 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [isMarketOpen, setIsMarketOpen] = useState(false);
+  const [subStatus, setSubStatus] = useState<string>("TRIAL");
 
   // Auto-fill from Option Chain selection
   useEffect(() => {
@@ -41,7 +43,6 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
       setSide("BUY");
       setPriceMsg(`Selected ${selectedOption.symbol} @ ₹${selectedOption.entryPrice}`);
 
-      // Auto-calculate suggested default Stop Loss (15%) and Target (30%)
       const price = selectedOption.entryPrice;
       const slVal = Number((price * 0.85).toFixed(2));
       const targetVal = Number((price * 1.3).toFixed(2));
@@ -51,16 +52,25 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
   }, [selectedOption]);
 
   useEffect(() => {
-    async function checkMarket() {
+    async function checkStatus() {
       try {
-        const res = await fetch("/api/market/quote?symbol=NIFTY");
-        const data = await res.json();
-        setIsMarketOpen(Boolean(data.isMarketOpen));
+        const [quoteRes, subRes] = await Promise.all([
+          fetch("/api/market/quote?symbol=NIFTY"),
+          fetch("/api/subscription/status"),
+        ]);
+
+        const quoteData = await quoteRes.json();
+        const subData = await subRes.json();
+
+        setIsMarketOpen(Boolean(quoteData.isMarketOpen));
+        if (subData.subscription?.status) {
+          setSubStatus(subData.subscription.status);
+        }
       } catch {
         // fallback
       }
     }
-    checkMarket();
+    checkStatus();
   }, []);
 
   async function handleSymbolChange(value: string) {
@@ -129,6 +139,11 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
     e.preventDefault();
     setError("");
 
+    if (subStatus === "EXPIRED") {
+      setError("Trial Expired: Please subscribe at ₹149/month on the Pricing page to place new trades.");
+      return;
+    }
+
     if (!isMarketOpen) {
       setError(
         "Order Rejected: NSE Market is currently CLOSED. Trading is strictly permitted only during live exchange hours (Mon-Fri 9:15 AM - 3:30 PM IST)."
@@ -191,8 +206,10 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
   const maxProfit = Number((rewardPerUnit * qNum).toFixed(2));
   const rrRatio = riskPerUnit > 0 ? (rewardPerUnit / riskPerUnit).toFixed(2) : "0";
 
+  const isExpired = subStatus === "EXPIRED";
+
   const inputClass =
-    "w-full bg-slate-900/70 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-accent/70 focus:ring-2 focus:ring-accent/20";
+    "w-full bg-slate-900/70 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-accent/70 focus:ring-2 focus:ring-accent/20 disabled:opacity-50";
 
   return (
     <form
@@ -203,20 +220,38 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
         <h2 className="font-semibold">New Paper Trade Order</h2>
         <span
           className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
-            isMarketOpen
+            isExpired
+              ? "bg-rose-500/20 text-rose-300 border-rose-500/30"
+              : isMarketOpen
               ? "bg-emerald-400/20 text-emerald-300 border-emerald-400/30"
-              : "bg-rose-500/20 text-rose-300 border-rose-500/30"
+              : "bg-amber-400/20 text-amber-300 border-amber-400/30"
           }`}
         >
-          {isMarketOpen ? "🟢 Market Open" : "🔒 Market Closed"}
+          {isExpired ? "🔴 Trial Expired" : isMarketOpen ? "🟢 Market Open" : "🔒 Market Closed"}
         </span>
       </div>
+
+      {isExpired && (
+        <div className="rounded-xl border border-rose-500/30 bg-rose-950/40 p-3 text-xs text-rose-200 space-y-2">
+          <p className="font-bold">🔴 Your 7-day free trial has expired.</p>
+          <p className="text-[11px] text-slate-300">
+            Your Trade Journal & Analytics remain <strong>100% accessible</strong>. Upgrade to PRO to place new trades.
+          </p>
+          <Link
+            href="/pricing"
+            className="inline-block w-full text-center bg-rose-500 text-white font-bold py-1.5 rounded-lg hover:bg-rose-400 transition-colors text-xs"
+          >
+            Upgrade to PRO (₹149/mo) →
+          </Link>
+        </div>
+      )}
 
       <div className="relative">
         <label className="text-xs text-muted block mb-1">
           Symbol {instrumentKey && <span className="text-accent">● matched symbol</span>}
         </label>
         <input
+          disabled={isExpired}
           className={inputClass}
           placeholder="e.g. NIFTY 24500 CE, BANKNIFTY 52000 PE..."
           value={symbol}
@@ -246,6 +281,7 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
+          disabled={isExpired}
           onClick={() => setSide("BUY")}
           className={`py-2.5 rounded-xl text-sm font-medium border transition-all duration-200 ${
             side === "BUY"
@@ -257,6 +293,7 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
         </button>
         <button
           type="button"
+          disabled={isExpired}
           onClick={() => setSide("SELL")}
           className={`py-2.5 rounded-xl text-sm font-medium border transition-all duration-200 ${
             side === "SELL"
@@ -273,6 +310,7 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
           <label className="text-xs text-muted block mb-1">Quantity (Lots)</label>
           <input
             type="number"
+            disabled={isExpired}
             className={inputClass}
             placeholder="e.g. 50"
             value={quantity}
@@ -284,7 +322,7 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
             <label className="text-xs text-muted">Entry Price</label>
             <button
               type="button"
-              disabled={fetchingPrice || !symbol}
+              disabled={isExpired || fetchingPrice || !symbol}
               onClick={() => fetchCurrentPrice()}
               className="text-[10px] text-accent hover:underline disabled:opacity-50"
             >
@@ -294,6 +332,7 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
           <input
             type="number"
             step="0.05"
+            disabled={isExpired}
             className={inputClass}
             placeholder="e.g. 150.50"
             value={entryPrice}
@@ -309,6 +348,7 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
           <input
             type="number"
             step="0.05"
+            disabled={isExpired}
             className={inputClass}
             placeholder="e.g. 125.00"
             value={stopLoss}
@@ -320,6 +360,7 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
           <input
             type="number"
             step="0.05"
+            disabled={isExpired}
             className={inputClass}
             placeholder="e.g. 200.00"
             value={target}
@@ -328,7 +369,7 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
         </div>
       </div>
 
-      {/* Feature 3: Real-Time Risk / Reward & Position Sizing Calculator */}
+      {/* Real-Time Risk / Reward & Position Sizing Calculator */}
       {hasRiskCalc && (
         <div className="rounded-xl border border-white/10 bg-slate-900/90 p-3 text-xs space-y-1.5 shadow-inner">
           <div className="flex justify-between items-center text-slate-300 font-semibold border-b border-white/10 pb-1.5">
@@ -354,14 +395,22 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
 
       <button
         type="submit"
-        disabled={submitting || !isMarketOpen}
+        disabled={submitting || isExpired || !isMarketOpen}
         className={`w-full font-medium py-2.5 rounded-xl transition-all duration-200 ${
-          isMarketOpen
+          isExpired
+            ? "bg-rose-950/50 text-rose-400 cursor-not-allowed border border-rose-500/30 font-bold"
+            : isMarketOpen
             ? "bg-accent text-black hover:brightness-95 shadow-[0_10px_24px_rgba(97,255,201,0.18)] cursor-pointer font-bold"
             : "bg-slate-800 text-slate-500 cursor-not-allowed border border-white/10"
         }`}
       >
-        {submitting ? "Placing Order..." : isMarketOpen ? "Place Trade Order" : "🔒 Market Closed (Trading Disabled)"}
+        {submitting
+          ? "Placing Order..."
+          : isExpired
+          ? "🔴 Trial Expired (New Trades Disabled)"
+          : isMarketOpen
+          ? "Place Trade Order"
+          : "🔒 Market Closed (Trading Disabled)"}
       </button>
     </form>
   );
