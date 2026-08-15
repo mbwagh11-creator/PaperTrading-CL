@@ -153,7 +153,7 @@ export default function OpenTrades({
             onChange={(e) => setAutoRefresh(e.target.checked)}
             className="rounded border-white/20 bg-slate-900 text-accent focus:ring-accent"
           />
-          <span>⚡ Auto-refresh live prices (0.5s)</span>
+          <span>⚡ Auto-refresh live prices (1s)</span>
         </label>
         <span className="text-muted flex items-center gap-1.5">
           <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse" />

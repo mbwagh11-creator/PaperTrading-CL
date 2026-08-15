@@ -61,7 +61,7 @@ export default async function DashboardPage() {
               <p className="text-xs text-muted">Virtual Starting Capital</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-accent">5 Seconds</p>
+              <p className="text-2xl font-bold text-accent">1 Second</p>
               <p className="text-xs text-muted">Live Market Quote Refresh</p>
             </div>
             <div>
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
               </div>
               <h3 className="text-lg font-bold text-white">Live P&L Tracking & Analytics</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Watch open positions update in real time with 5-second auto-refresh. Analyze win rates, profit factor, average win/loss ratio, and drawdowns.
+                Watch open positions update in real time with 1-second auto-refresh. Analyze win rates, profit factor, average win/loss ratio, and drawdowns.
               </p>
             </div>
           </div>

@@ -60,7 +60,7 @@ function getCalculatedPrice(symbol: string): {
   }
 
   // 3. Add smooth micro fluctuations (deterministic wave + slight random tick)
-  const time = Date.now() / 3000; // changes every 3 seconds smoothly
+  const time = Date.now() / 1000; // changes every 1 second smoothly
   const wave = Math.sin(time) * 0.002;
   const tick = (Math.random() - 0.5) * 0.001;
   const currentPrice = Number((basePrice * (1 + wave + tick)).toFixed(2));
