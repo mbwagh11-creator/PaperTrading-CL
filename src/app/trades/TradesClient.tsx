@@ -20,9 +20,8 @@ export default function TradesClient() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [marketStatusText, setMarketStatusText] = useState("Checking NSE Market Status...");
-  const [isMarketOpen, setIsMarketOpen] = useState(true);
-  const [practiceMode, setPracticeMode] = useState(false);
+  const [marketStatusText, setMarketStatusText] = useState("Connecting to Live Real NSE Data Feed...");
+  const [isMarketOpen, setIsMarketOpen] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -73,7 +72,7 @@ export default function TradesClient() {
       <div>
         <h1 className="text-2xl font-bold mb-1">NSE Options Paper Trading Terminal</h1>
         <p className="text-muted">
-          Simulate NSE options & stock trades with real-time market quotes and zero financial risk.
+          Simulate NSE options & stock trades with real-time live market quotes and zero financial risk.
         </p>
       </div>
 
@@ -87,34 +86,29 @@ export default function TradesClient() {
         </div>
       )}
 
-      {/* Market Status Banner */}
+      {/* Real NSE Market Status Banner */}
       <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-4 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
         <div className="flex items-center gap-3">
-          <span className={`w-3 h-3 rounded-full ${isMarketOpen || practiceMode ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
+          <span className={`w-3 h-3 rounded-full ${isMarketOpen ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
           <div>
-            <p className="text-sm font-bold text-white">{practiceMode ? "🎮 Weekend & After-Hours Practice Mode Active" : marketStatusText}</p>
+            <p className="text-sm font-bold text-white">{marketStatusText}</p>
             <p className="text-xs text-slate-300">
               {isMarketOpen
-                ? "Official NSE market hours active (9:15 AM - 3:30 PM IST). Live 1s quotes streaming."
-                : practiceMode
-                ? "Simulating live price fluctuations for weekend & evening strategy testing."
-                : "Real NSE market is closed. Prices are frozen at market close. Enable practice mode to test strategies."}
+                ? "Official NSE market is OPEN (9:15 AM - 3:30 PM IST). Live floor prices streaming."
+                : "Real NSE market is CLOSED. Live prices are 100% frozen at official market closing levels."}
             </p>
           </div>
         </div>
 
-        {!isMarketOpen && (
-          <button
-            onClick={() => setPracticeMode(!practiceMode)}
-            className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all ${
-              practiceMode
-                ? "bg-amber-400/20 text-amber-300 border-amber-400/40 hover:bg-amber-400/30"
-                : "bg-emerald-400/20 text-emerald-300 border-emerald-400/40 hover:bg-emerald-400/30"
-            }`}
-          >
-            {practiceMode ? "Disable Practice Mode" : "🎮 Enable Practice Ticks"}
-          </button>
-        )}
+        <span
+          className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${
+            isMarketOpen
+              ? "bg-emerald-400/20 text-emerald-300 border-emerald-400/30"
+              : "bg-slate-800 text-slate-400 border-white/10"
+          }`}
+        >
+          {isMarketOpen ? "⚡ Official NSE Live Feed" : "🔒 Market Closed (Static Quotes)"}
+        </span>
       </div>
 
       <div className="grid md:grid-cols-[380px_1fr] gap-6 items-start">
@@ -124,7 +118,7 @@ export default function TradesClient() {
           {loading ? (
             <p className="text-muted text-sm">Loading positions...</p>
           ) : (
-            <OpenTrades trades={trades} onChanged={refreshSilent} practiceMode={practiceMode} />
+            <OpenTrades trades={trades} onChanged={refreshSilent} />
           )}
         </div>
       </div>

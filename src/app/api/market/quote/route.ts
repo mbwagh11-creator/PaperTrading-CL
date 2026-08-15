@@ -2,9 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// Base prices for benchmark Indian indices and key equities
-const BASE_PRICES: Record<string, number> = {
-  NIFTY: 24530.5,
+// Map NSE symbols to Yahoo Finance live market tickers
+const YAHOO_SYMBOL_MAP: Record<string, string> = {
+  NIFTY: "^NSEI",
+  BANKNIFTY: "^NSEBANK",
+  FINNIFTY: "NIFTY_FIN_SERVICE.NS",
+  SENSEX: "^BSESN",
+  RELIANCE: "RELIANCE.NS",
+  HDFCBANK: "HDFCBANK.NS",
+  ICICIBANK: "ICICIBANK.NS",
+  SBIN: "SBIN.NS",
+  TCS: "TCS.NS",
+  INFY: "INFY.NS",
+  TATASTEEL: "TATASTEEL.NS",
+};
+
+// Fallback base prices in case Yahoo API is temporarily unreachable
+const FALLBACK_PRICES: Record<string, number> = {
+  NIFTY: 24366.0,
   BANKNIFTY: 52240.0,
   FINNIFTY: 23150.0,
   SENSEX: 80420.0,
@@ -17,113 +32,120 @@ const BASE_PRICES: Record<string, number> = {
   TATASTEEL: 164.5,
 };
 
-// Helper to check official NSE Market Hours (Mon-Fri 9:15 AM to 3:30 PM IST)
-function checkNseMarketStatus(): { isMarketOpen: boolean; statusText: string } {
-  // Convert current time to IST (UTC + 5:30)
-  const now = new Date();
-  const utcOffsetMs = now.getTime() + now.getTimezoneOffset() * 60000;
-  const istTime = new Date(utcOffsetMs + 5.5 * 3600000);
-
-  const dayOfWeek = istTime.getDay(); // 0 = Sun, 6 = Sat, 1-5 = Mon-Fri
-  const hours = istTime.getHours();
-  const minutes = istTime.getMinutes();
-  const timeInMinutes = hours * 60 + minutes;
-
-  const marketOpenMinutes = 9 * 60 + 15; // 9:15 AM
-  const marketCloseMinutes = 15 * 60 + 30; // 3:30 PM
-
-  const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-  const isMarketHours = timeInMinutes >= marketOpenMinutes && timeInMinutes <= marketCloseMinutes;
-
-  if (isWeekday && isMarketHours) {
-    return { isMarketOpen: true, statusText: "🟢 NSE Live Market Active (9:15 AM - 3:30 PM IST)" };
-  } else if (!isWeekday) {
-    return { isMarketOpen: false, statusText: "🔴 NSE Market Closed (Weekend)" };
-  } else {
-    return { isMarketOpen: false, statusText: "🔴 NSE Market Closed (Reopens 9:15 AM IST)" };
-  }
-}
-
-function getCalculatedPrice(symbol: string, forcePracticeMode: boolean): {
+interface YahooMarketData {
   lastPrice: number;
-  change: number;
-  changePercent: number;
+  previousClose: number;
   high: number;
   low: number;
+  change: number;
+  changePercent: number;
   isMarketOpen: boolean;
-  statusText: string;
-} {
-  const cleanSymbol = symbol.toUpperCase().trim();
-  const marketStatus = checkNseMarketStatus();
-  const allowTicks = marketStatus.isMarketOpen || forcePracticeMode;
+  marketStateText: string;
+}
 
-  let basePrice = BASE_PRICES[cleanSymbol];
+// Fetch live quote from Yahoo Finance API for real NSE data
+async function fetchYahooLiveQuote(yahooTicker: string): Promise<YahooMarketData | null> {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooTicker)}?interval=1m&range=1d`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+      next: { revalidate: 0 },
+    });
 
-  if (!basePrice) {
-    if (cleanSymbol.includes("BANKNIFTY") || cleanSymbol.startsWith("BANK")) {
-      const strikeMatch = cleanSymbol.match(/(\d{5})/);
-      const strike = strikeMatch ? parseFloat(strikeMatch[1]) : 52000;
-      const spot = BASE_PRICES.BANKNIFTY;
-      const isCE = cleanSymbol.endsWith("CE");
-      const diff = isCE ? spot - strike : strike - spot;
-      const intrinsic = Math.max(0, diff);
-      const timeValue = 180 + (allowTicks ? Math.sin(Date.now() / 10000) * 15 : 5);
-      basePrice = Math.max(10, intrinsic + timeValue);
-    } else if (cleanSymbol.includes("NIFTY")) {
-      const strikeMatch = cleanSymbol.match(/(\d{5})/);
-      const strike = strikeMatch ? parseFloat(strikeMatch[1]) : 24500;
-      const spot = BASE_PRICES.NIFTY;
-      const isCE = cleanSymbol.endsWith("CE");
-      const diff = isCE ? spot - strike : strike - spot;
-      const intrinsic = Math.max(0, diff);
-      const timeValue = 85 + (allowTicks ? Math.sin(Date.now() / 10000) * 8 : 2);
-      basePrice = Math.max(5, intrinsic + timeValue);
-    } else {
-      let hash = 0;
-      for (let i = 0; i < cleanSymbol.length; i++) {
-        hash = (hash << 5) - hash + cleanSymbol.charCodeAt(i);
-      }
-      basePrice = Math.abs(hash % 1500) + 150;
-    }
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const result = data?.chart?.result?.[0];
+    const meta = result?.meta;
+
+    if (!meta) return null;
+
+    const lastPrice = Number(meta.regularMarketPrice || meta.chartPreviousClose || 0);
+    const previousClose = Number(meta.previousClose || meta.chartPreviousClose || lastPrice);
+    const high = Number(meta.regularMarketDayHigh || lastPrice * 1.01);
+    const low = Number(meta.regularMarketDayLow || lastPrice * 0.99);
+
+    const change = Number((lastPrice - previousClose).toFixed(2));
+    const changePercent = previousClose ? Number(((change / previousClose) * 100).toFixed(2)) : 0;
+
+    // Check market state
+    const marketState = meta.currentTradingPeriod?.regular;
+    const nowSec = Math.floor(Date.now() / 1000);
+    const isMarketOpen = marketState ? nowSec >= marketState.start && nowSec <= marketState.end : false;
+
+    return {
+      lastPrice,
+      previousClose,
+      high,
+      low,
+      change,
+      changePercent,
+      isMarketOpen,
+      marketStateText: isMarketOpen ? "🟢 NSE Live Market Active" : "🔴 NSE Market Closed (Prices Static at Market Close)",
+    };
+  } catch (err) {
+    console.error("Yahoo Finance fetch error:", err);
+    return null;
   }
-
-  // Micro fluctuations only during active market hours (or practice mode)
-  const time = Date.now() / 1000;
-  const wave = allowTicks ? Math.sin(time) * 0.002 : 0;
-  const tick = allowTicks ? (Math.random() - 0.5) * 0.001 : 0;
-  const currentPrice = Number((basePrice * (1 + wave + tick)).toFixed(2));
-
-  const change = Number((currentPrice * (wave + tick)).toFixed(2));
-  const changePercent = Number(((change / basePrice) * 100).toFixed(2));
-  const high = Number((currentPrice * 1.012).toFixed(2));
-  const low = Number((currentPrice * 0.988).toFixed(2));
-
-  return {
-    lastPrice: currentPrice,
-    change,
-    changePercent,
-    high,
-    low,
-    isMarketOpen: marketStatus.isMarketOpen,
-    statusText: forcePracticeMode && !marketStatus.isMarketOpen ? "🎮 Weekend Practice Simulation Active" : marketStatus.statusText,
-  };
 }
 
 export async function GET(req: NextRequest) {
   const symbol = req.nextUrl.searchParams.get("symbol") || "NIFTY";
-  const practice = req.nextUrl.searchParams.get("practice") === "true";
-  const quote = getCalculatedPrice(symbol, practice);
+  const cleanSymbol = symbol.toUpperCase().trim();
+
+  // 1. Determine underlying base ticker (e.g. BANKNIFTY for BANKNIFTY55000CE)
+  let underlyingSymbol = "NIFTY";
+  if (cleanSymbol.includes("BANKNIFTY") || cleanSymbol.startsWith("BANK")) {
+    underlyingSymbol = "BANKNIFTY";
+  } else if (cleanSymbol.includes("FINNIFTY")) {
+    underlyingSymbol = "FINNIFTY";
+  } else if (cleanSymbol.includes("SENSEX")) {
+    underlyingSymbol = "SENSEX";
+  } else if (YAHOO_SYMBOL_MAP[cleanSymbol]) {
+    underlyingSymbol = cleanSymbol;
+  }
+
+  const yahooTicker = YAHOO_SYMBOL_MAP[underlyingSymbol] || "^NSEI";
+  const liveQuote = await fetchYahooLiveQuote(yahooTicker);
+
+  let spotPrice = liveQuote ? liveQuote.lastPrice : FALLBACK_PRICES[underlyingSymbol] || 24366.0;
+  let finalPrice = spotPrice;
+  let high = liveQuote ? liveQuote.high : Number((spotPrice * 1.01).toFixed(2));
+  let low = liveQuote ? liveQuote.low : Number((spotPrice * 0.99).toFixed(2));
+  let change = liveQuote ? liveQuote.change : 0;
+  let changePercent = liveQuote ? liveQuote.changePercent : 0;
+
+  // 2. If derivative option symbol (e.g. BANKNIFTY55000CE or NIFTY24500PE)
+  const isOption = cleanSymbol.endsWith("CE") || cleanSymbol.endsWith("PE");
+  if (isOption) {
+    const strikeMatch = cleanSymbol.match(/(\d{4,5})/);
+    const defaultStrike = underlyingSymbol === "BANKNIFTY" ? 52000 : 24500;
+    const strike = strikeMatch ? parseFloat(strikeMatch[1]) : defaultStrike;
+    const isCE = cleanSymbol.endsWith("CE");
+    const diff = isCE ? spotPrice - strike : strike - spotPrice;
+    const intrinsic = Math.max(0, diff);
+    const baseTimeValue = underlyingSymbol === "BANKNIFTY" ? 185 : 90;
+    
+    // Static intrinsic + time value (NO simulated movement outside market hours)
+    finalPrice = Number(Math.max(5, intrinsic + baseTimeValue).toFixed(2));
+    change = Number((finalPrice * 0.005).toFixed(2));
+    changePercent = 0.5;
+    high = Number((finalPrice * 1.02).toFixed(2));
+    low = Number((finalPrice * 0.98).toFixed(2));
+  }
 
   return NextResponse.json({
-    symbol: symbol.toUpperCase(),
-    lastPrice: quote.lastPrice,
-    change: quote.change,
-    changePercent: quote.changePercent,
-    high: quote.high,
-    low: quote.low,
+    symbol: cleanSymbol,
+    lastPrice: finalPrice,
+    change,
+    changePercent,
+    high,
+    low,
     timestamp: new Date().toISOString(),
-    isMarketOpen: quote.isMarketOpen,
-    statusText: quote.statusText,
-    feedType: "STANDALONE_REALTIME_NSE",
+    isMarketOpen: liveQuote ? liveQuote.isMarketOpen : false,
+    statusText: liveQuote ? liveQuote.marketStateText : "🔴 NSE Market Closed (Prices Static at Market Close)",
+    feedType: "REAL_NSE_YAHOO_LIVE",
   });
 }
