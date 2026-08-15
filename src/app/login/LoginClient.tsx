@@ -10,7 +10,6 @@ export default function LoginClient() {
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
-  const [demoCodeHint, setDemoCodeHint] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [matches, setMatches] = useState<Array<{ name: string; maskedEmail: string; fullEmail: string }>>([]);
   const [message, setMessage] = useState("");
@@ -33,10 +32,7 @@ export default function LoginClient() {
       if (!res.ok) throw new Error(data.error || "Failed to send OTP code.");
 
       setOtpSent(true);
-      if (data.demoCodePreview) {
-        setDemoCodeHint(data.demoCodePreview);
-      }
-      setMessage(`6-digit OTP security code generated for ${email}. Enter code below.`);
+      setMessage(`📧 A 6-digit verification code has been dispatched to ${email}. Please check your inbox.`);
     } catch (err: any) {
       setMessage(err.message);
     } finally {
@@ -61,7 +57,7 @@ export default function LoginClient() {
       if (!res.ok) throw new Error(data.error || "OTP verification failed.");
 
       setOtpVerified(true);
-      setMessage("✅ Email verified! You can now set your new password below.");
+      setMessage("✅ Email verified successfully! Now type your new password below.");
     } catch (err: any) {
       setMessage(err.message);
     } finally {
@@ -132,7 +128,7 @@ export default function LoginClient() {
     setMode("reset");
     setOtpSent(false);
     setOtpVerified(false);
-    setMessage(`Selected ${accEmail}. Click "Send 6-Digit OTP Code" to verify ownership before resetting password.`);
+    setMessage(`Selected ${accEmail}. Click "Send 6-Digit OTP" to verify ownership before resetting password.`);
   }
 
   return (
@@ -150,7 +146,7 @@ export default function LoginClient() {
         {mode === "find"
           ? "Type your name to search for your registered email address."
           : mode === "reset"
-          ? "Enter your email, verify your 6-digit OTP code, and enter your new password."
+          ? "Enter your email, verify your 6-digit OTP code sent to your inbox, and enter your new password."
           : "Login or sign up to access your personal NSE options paper-trading terminal & strategy journal."}
       </p>
 
@@ -204,16 +200,11 @@ export default function LoginClient() {
 
                 {otpSent && !otpVerified && (
                   <div className="space-y-2 pt-1">
-                    {demoCodeHint && (
-                      <p className="text-[11px] text-emerald-300 bg-emerald-950/60 p-2 rounded-lg border border-emerald-500/30">
-                        ⚡ Security Verification Code: <strong className="text-white text-xs tracking-wider">{demoCodeHint}</strong>
-                      </p>
-                    )}
                     <div className="flex gap-2">
                       <input
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value.trim())}
-                        placeholder="Enter 6-digit OTP"
+                        placeholder="Enter 6-digit OTP code from email"
                         maxLength={6}
                         className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-1.5 text-xs text-white outline-none focus:border-emerald-400 tracking-widest font-mono"
                       />
