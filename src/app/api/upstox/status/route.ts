@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/upstox/status - tells the frontend whether a live Upstox session is active,
 // so it can show live-price controls instead of the manual entry fallback.
 export async function GET() {
