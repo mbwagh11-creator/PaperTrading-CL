@@ -6,12 +6,20 @@ import path from "path";
 if (process.env.VERCEL || process.env.NODE_ENV === "production") {
   try {
     const tmpDbPath = "/tmp/dev.db";
-    if (!fs.existsSync(tmpDbPath)) {
-      const localDb = path.join(process.cwd(), "dev.db");
-      if (fs.existsSync(localDb)) {
-        fs.copyFileSync(localDb, tmpDbPath);
-      } else {
-        fs.writeFileSync(tmpDbPath, "");
+    const needsCopy = !fs.existsSync(tmpDbPath) || fs.statSync(tmpDbPath).size === 0;
+
+    if (needsCopy) {
+      const candidates = [
+        path.join(process.cwd(), "prisma", "seed.db"),
+        path.join(process.cwd(), "prisma", "dev.db"),
+        path.join(process.cwd(), "dev.db"),
+      ];
+
+      for (const cand of candidates) {
+        if (fs.existsSync(cand) && fs.statSync(cand).size > 0) {
+          fs.copyFileSync(cand, tmpDbPath);
+          break;
+        }
       }
     }
     const envObj = process.env;
