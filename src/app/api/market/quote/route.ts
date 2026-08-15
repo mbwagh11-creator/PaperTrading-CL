@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
   const symbol = req.nextUrl.searchParams.get("symbol") || "NIFTY";
   const cleanSymbol = symbol.toUpperCase().trim();
 
-  // 1. Determine underlying base ticker (e.g. BANKNIFTY for BANKNIFTY55000CE)
+  // 1. Determine underlying base ticker (e.g. BANKNIFTY for "BANKNIFTY 57500 CE 25 AUG 26")
   let underlyingSymbol = "NIFTY";
   if (cleanSymbol.includes("BANKNIFTY") || cleanSymbol.startsWith("BANK")) {
     underlyingSymbol = "BANKNIFTY";
@@ -117,19 +117,26 @@ export async function GET(req: NextRequest) {
   let change = liveQuote ? liveQuote.change : 0;
   let changePercent = liveQuote ? liveQuote.changePercent : 0;
 
-  // 2. If derivative option symbol (e.g. BANKNIFTY55000CE or NIFTY24500PE)
-  const isOption = cleanSymbol.endsWith("CE") || cleanSymbol.endsWith("PE");
+  // 2. Flexible detection for option contract symbols (e.g. "BANKNIFTY 57500 CE 25 AUG 26" or "NIFTY24500CE")
+  const isOption =
+    cleanSymbol.includes(" CE") ||
+    cleanSymbol.includes(" PE") ||
+    cleanSymbol.endsWith("CE") ||
+    cleanSymbol.endsWith("PE") ||
+    cleanSymbol.includes("CALL") ||
+    cleanSymbol.includes("PUT");
+
   if (isOption) {
     const strikeMatch = cleanSymbol.match(/(\d{4,5})/);
     const defaultStrike = underlyingSymbol === "BANKNIFTY" ? 52000 : 24500;
     const strike = strikeMatch ? parseFloat(strikeMatch[1]) : defaultStrike;
-    const isCE = cleanSymbol.endsWith("CE");
+    const isCE = cleanSymbol.includes("CE") || cleanSymbol.includes("CALL");
     const diff = isCE ? spotPrice - strike : strike - spotPrice;
     const intrinsic = Math.max(0, diff);
     const baseTimeValue = underlyingSymbol === "BANKNIFTY" ? 185 : 90;
-    
-    // Static intrinsic + time value (NO simulated movement outside market hours)
-    finalPrice = Number(Math.max(5, intrinsic + baseTimeValue).toFixed(2));
+
+    // Correct option premium calculation (Intrinsic + Time Value)
+    finalPrice = Number(Math.max(15, intrinsic + baseTimeValue).toFixed(2));
     change = Number((finalPrice * 0.005).toFixed(2));
     changePercent = 0.5;
     high = Number((finalPrice * 1.02).toFixed(2));
