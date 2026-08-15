@@ -1,7 +1,5 @@
-import { prisma } from "@/lib/prisma";
-
 export interface UserSubscriptionInfo {
-  status: "TRIAL" | "ACTIVE" | "EXPIRED";
+  status: "TRIAL" | "ACTIVE" | "EXPIRED" | "LIFETIME";
   isAccessible: boolean;
   trialDaysRemaining: number;
   trialEndsAt: string | null;
@@ -10,15 +8,36 @@ export interface UserSubscriptionInfo {
   price: string;
 }
 
+const ADMIN_EMAILS = ["mbwagh11@gmail.com"];
+
 export function calculateSubscriptionStatus(user: {
+  email?: string | null;
   createdAt?: Date;
   trialEndsAt?: Date | null;
   subscriptionStatus?: string | null;
   subscriptionEndsAt?: Date | null;
 }): UserSubscriptionInfo {
   const now = new Date();
+  const userEmail = (user.email || "").toLowerCase().trim();
 
-  // 1. Active Paid Subscription check
+  // 1. Creator / Admin Lifetime Free Access
+  if (
+    ADMIN_EMAILS.includes(userEmail) ||
+    user.subscriptionStatus === "LIFETIME" ||
+    (user.subscriptionEndsAt && new Date(user.subscriptionEndsAt).getFullYear() >= 2090)
+  ) {
+    return {
+      status: "ACTIVE",
+      isAccessible: true,
+      trialDaysRemaining: 9999,
+      trialEndsAt: null,
+      subscriptionEndsAt: "2099-12-31T23:59:59.000Z",
+      planName: "Lifetime Free Owner VIP",
+      price: "₹0 (Lifetime Free)",
+    };
+  }
+
+  // 2. Active Paid Subscription check
   if (
     user.subscriptionStatus === "ACTIVE" &&
     user.subscriptionEndsAt &&
@@ -35,7 +54,7 @@ export function calculateSubscriptionStatus(user: {
     };
   }
 
-  // 2. Free 7-Day Trial check
+  // 3. Free 7-Day Trial check
   const trialEnd = user.trialEndsAt
     ? new Date(user.trialEndsAt)
     : new Date((user.createdAt ? new Date(user.createdAt).getTime() : now.getTime()) + 7 * 24 * 60 * 60 * 1000);
@@ -55,7 +74,7 @@ export function calculateSubscriptionStatus(user: {
     };
   }
 
-  // 3. Trial Expired
+  // 4. Trial Expired
   return {
     status: "EXPIRED",
     isAccessible: false,
