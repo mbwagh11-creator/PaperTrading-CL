@@ -114,9 +114,9 @@ export default function Navbar() {
           </Link>
           <Link
             href="/books"
-            className="rounded-full px-3 py-1.5 transition-all duration-200 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium hover:bg-emerald-500/20"
+            className="rounded-full px-3 py-1.5 transition-all duration-200 hover:bg-white/10 hover:text-white"
           >
-            E-Books 📚
+            Books
           </Link>
 
           {(user?.email === "mbwagh11@gmail.com" || sub?.status === "LIFETIME") && (
