@@ -20,7 +20,7 @@ const YAHOO_SYMBOL_MAP: Record<string, string> = {
 // Fallback base prices in case Yahoo API is temporarily unreachable
 const FALLBACK_PRICES: Record<string, number> = {
   NIFTY: 24366.0,
-  BANKNIFTY: 52240.0,
+  BANKNIFTY: 57491.0,
   FINNIFTY: 23150.0,
   SENSEX: 80420.0,
   RELIANCE: 3045.5,
@@ -128,7 +128,7 @@ export async function GET(req: NextRequest) {
 
   if (isOption) {
     const strikeMatch = cleanSymbol.match(/(\d{4,5})/);
-    const defaultStrike = underlyingSymbol === "BANKNIFTY" ? 52000 : 24500;
+    const defaultStrike = underlyingSymbol === "BANKNIFTY" ? 57500 : 24500;
     const strike = strikeMatch ? parseFloat(strikeMatch[1]) : defaultStrike;
     const isCE = cleanSymbol.includes("CE") || cleanSymbol.includes("CALL");
     const diff = isCE ? spotPrice - strike : strike - spotPrice;

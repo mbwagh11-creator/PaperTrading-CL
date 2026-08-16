@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface OptionChainProps {
   onSelectOption: (option: { symbol: string; entryPrice: number; quantity: number }) => void;
@@ -8,14 +8,41 @@ interface OptionChainProps {
 
 export default function OptionChain({ onSelectOption }: OptionChainProps) {
   const [index, setIndex] = useState<"NIFTY" | "BANKNIFTY">("NIFTY");
+  const [niftySpot, setNiftySpot] = useState<number>(24366.0);
+  const [bankniftySpot, setBankniftySpot] = useState<number>(57491.0);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function fetchSpotPrices() {
+      try {
+        const [niftyRes, bankRes] = await Promise.all([
+          fetch("/api/market/quote?symbol=NIFTY"),
+          fetch("/api/market/quote?symbol=BANKNIFTY"),
+        ]);
+        const niftyData = await niftyRes.json();
+        const bankData = await bankRes.json();
+
+        if (niftyData.lastPrice) setNiftySpot(niftyData.lastPrice);
+        if (bankData.lastPrice) setBankniftySpot(bankData.lastPrice);
+      } catch (err) {
+        console.error("Option chain spot price fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchSpotPrices();
+    const interval = setInterval(fetchSpotPrices, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Benchmark spot & lot size constants
-  const spotPrice = index === "NIFTY" ? 24366.0 : 52240.0;
+  const spotPrice = index === "NIFTY" ? niftySpot : bankniftySpot;
   const lotSize = index === "NIFTY" ? 50 : 30;
   const strikeInterval = index === "NIFTY" ? 50 : 100;
   const baseStrike = Math.round(spotPrice / strikeInterval) * strikeInterval;
 
-  // Generate 5 strike levels above and below spot
+  // Generate 4 strike levels above and 4 below spot (9 total strikes)
   const strikes: number[] = [];
   for (let i = -4; i <= 4; i++) {
     strikes.push(baseStrike + i * strikeInterval);
@@ -51,7 +78,7 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
               index === "NIFTY" ? "bg-emerald-400 text-slate-950 shadow" : "text-slate-400 hover:text-white"
             }`}
           >
-            NIFTY 50 (Spot ₹24,366)
+            NIFTY 50 (Spot ₹{niftySpot.toLocaleString("en-IN")})
           </button>
           <button
             onClick={() => setIndex("BANKNIFTY")}
@@ -59,7 +86,7 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
               index === "BANKNIFTY" ? "bg-emerald-400 text-slate-950 shadow" : "text-slate-400 hover:text-white"
             }`}
           >
-            BANK NIFTY (Spot ₹52,240)
+            BANK NIFTY (Spot ₹{bankniftySpot.toLocaleString("en-IN")})
           </button>
         </div>
       </div>

@@ -253,27 +253,45 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
         <input
           disabled={isExpired}
           className={inputClass}
-          placeholder="e.g. NIFTY 24500 CE, BANKNIFTY 52000 PE..."
+          placeholder="e.g. NIFTY 24500 CE, BANKNIFTY 57500 PE, 55000..."
           value={symbol}
           onChange={(e) => handleSymbolChange(e.target.value)}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
         />
         {showSuggestions && suggestions.length > 0 && (
-          <ul className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto bg-slate-900 border border-white/10 rounded-xl text-sm shadow-2xl">
-            {suggestions.map((inst) => (
-              <li
-                key={inst.instrumentKey}
-                onMouseDown={() => pickSuggestion(inst)}
-                className="px-3 py-2 hover:bg-white/10 cursor-pointer flex justify-between items-center border-b border-white/5 last:border-0"
-              >
-                <span className="font-medium text-slate-200">{inst.tradingSymbol}</span>
-                <span className="text-muted text-xs">
-                  {inst.instrumentType}
-                  {inst.strikePrice ? ` ${inst.strikePrice}` : ""}
-                </span>
-              </li>
-            ))}
+          <ul className="absolute z-50 mt-1 w-full max-h-64 overflow-y-auto bg-slate-900 border border-white/20 rounded-xl text-sm shadow-2xl divide-y divide-white/5">
+            {suggestions.map((inst) => {
+              const isCE = inst.tradingSymbol.endsWith("CE") || inst.instrumentType === "CE";
+              const isPE = inst.tradingSymbol.endsWith("PE") || inst.instrumentType === "PE";
+
+              return (
+                <li
+                  key={inst.instrumentKey}
+                  onMouseDown={() => pickSuggestion(inst)}
+                  className="px-3.5 py-2.5 hover:bg-white/10 cursor-pointer flex justify-between items-center transition-colors"
+                >
+                  <span className="font-semibold text-slate-100">{inst.tradingSymbol}</span>
+                  <div className="flex items-center gap-2 text-xs">
+                    {inst.lotSize && (
+                      <span className="text-[11px] text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                        Lot: {inst.lotSize}
+                      </span>
+                    )}
+                    {isCE && (
+                      <span className="text-[10px] bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 px-1.5 py-0.5 rounded font-bold">
+                        CALL (CE)
+                      </span>
+                    )}
+                    {isPE && (
+                      <span className="text-[10px] bg-rose-400/20 text-rose-300 border border-rose-400/30 px-1.5 py-0.5 rounded font-bold">
+                        PUT (PE)
+                      </span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
