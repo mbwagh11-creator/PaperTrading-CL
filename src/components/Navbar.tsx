@@ -95,13 +95,13 @@ export default function Navbar() {
             Pricing
           </Link>
           <Link href="/apps" className="rounded-full px-3 py-1.5 transition-all hover:bg-white/10 hover:text-white">
-            Apps 📱
+            Apps
           </Link>
           <Link href="/books" className="rounded-full px-3 py-1.5 transition-all hover:bg-white/10 hover:text-white">
-            Books 📚
+            Books
           </Link>
           <Link href="/feedback" className="rounded-full px-3 py-1.5 transition-all hover:bg-white/10 hover:text-white">
-            Feedback 💬
+            Feedback
           </Link>
 
           {(user?.email === "mbwagh11@gmail.com" || sub?.status === "LIFETIME") && (
@@ -207,21 +207,21 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="bg-white/5 hover:bg-white/10 text-slate-200 p-3 rounded-xl flex items-center gap-2 border border-white/5 font-medium"
             >
-              📱 Mobile Apps
+              Mobile Apps
             </Link>
             <Link
               href="/books"
               onClick={() => setMobileMenuOpen(false)}
               className="bg-white/5 hover:bg-white/10 text-slate-200 p-3 rounded-xl flex items-center gap-2 border border-white/5 font-medium"
             >
-              📚 E-Books
+              E-Books
             </Link>
             <Link
               href="/feedback"
               onClick={() => setMobileMenuOpen(false)}
               className="bg-white/5 hover:bg-white/10 text-slate-200 p-3 rounded-xl flex items-center gap-2 border border-white/5 font-medium"
             >
-              💬 Feedback
+              Feedback
             </Link>
             {(user?.email === "mbwagh11@gmail.com" || sub?.status === "LIFETIME") && (
               <Link
