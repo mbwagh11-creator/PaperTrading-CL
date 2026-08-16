@@ -25,6 +25,7 @@ export default function TradesClient() {
   const [marketStatusText, setMarketStatusText] = useState("Connecting to Live Real NSE Data Feed...");
   const [isMarketOpen, setIsMarketOpen] = useState(false);
   const [subStatus, setSubStatus] = useState<string>("TRIAL");
+  const [trialDaysRemaining, setTrialDaysRemaining] = useState<number>(7);
   const [selectedOption, setSelectedOption] = useState<{ symbol: string; entryPrice: number; quantity: number } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -63,6 +64,7 @@ export default function TradesClient() {
         const subData = await subRes.json();
         if (subData.subscription?.status) {
           setSubStatus(subData.subscription.status);
+          setTrialDaysRemaining(subData.subscription.trialDaysRemaining ?? 7);
         }
       }
     } catch {
@@ -100,6 +102,24 @@ export default function TradesClient() {
           isMarketOpen={isMarketOpen}
           subStatus={subStatus}
         />
+      )}
+
+      {/* Trial Countdown Header Announcement Bar */}
+      {subStatus === "TRIAL" && (
+        <div className="bg-[#00E599]/10 border border-[#00E599]/30 rounded-2xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-semibold animate-fadeIn">
+          <div className="flex items-center gap-2 text-slate-200">
+            <span className="text-[#00E599]">⚡</span>
+            <span>
+              Free PRO Trial Active: <strong className="text-[#00E599] font-bold">{trialDaysRemaining} Days Remaining</strong>
+            </span>
+          </div>
+          <a
+            href="/pricing"
+            className="px-3.5 py-1 rounded-xl bg-[#00E599] text-[#090A0F] font-extrabold hover:brightness-110 transition-all shadow-sm shrink-0"
+          >
+            Upgrade to Unlimited PRO →
+          </a>
+        </div>
       )}
 
       <div>

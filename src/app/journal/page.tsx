@@ -170,45 +170,54 @@ export default async function JournalPage() {
         </div>
       </div>
 
+      {/* Monthly P&L Calendar Heatmap */}
       <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
-        <div className="bg-panel border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">Period Breakdown</h2>
-            <span className="text-muted text-xs">Month · Year · Daily</span>
+        <div className="bg-[#12151E] border border-white/10 rounded-2xl p-5 shadow-xl space-y-4">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <h2 className="font-bold text-white text-base">Period P&L Breakdown</h2>
+            <span className="text-slate-400 text-xs font-mono">Month • Year • Daily</span>
           </div>
 
           <div className="grid md:grid-cols-3 gap-3">
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-muted text-xs uppercase">Month</p>
-              <div className="mt-2 space-y-2 max-h-44 overflow-auto">
+            <div className="rounded-xl border border-white/10 bg-[#080C11] p-3">
+              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Monthly P&L</p>
+              <div className="mt-2 space-y-2 max-h-44 overflow-auto font-mono text-xs">
                 {sortedMonthlyEntries.slice(0, 6).map(([period, value]) => (
-                  <div key={period} className="flex justify-between text-sm">
-                    <span className="text-muted">{period}</span>
-                    <span className={value >= 0 ? "text-accent" : "text-danger"}>{fmtMoney(value)}</span>
+                  <div key={period} className="flex justify-between">
+                    <span className="text-slate-400">{period}</span>
+                    <span className={`font-bold ${value >= 0 ? "text-[#00E599]" : "text-[#FF3B5C]"}`}>
+                      {fmtMoney(value)}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-muted text-xs uppercase">Year</p>
-              <div className="mt-2 space-y-2 max-h-44 overflow-auto">
+            <div className="rounded-xl border border-white/10 bg-[#080C11] p-3">
+              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Yearly P&L</p>
+              <div className="mt-2 space-y-2 max-h-44 overflow-auto font-mono text-xs">
                 {sortedYearlyEntries.slice(0, 6).map(([year, value]) => (
-                  <div key={year} className="flex justify-between text-sm">
-                    <span className="text-muted">{year}</span>
-                    <span className={value >= 0 ? "text-accent" : "text-danger"}>{fmtMoney(value)}</span>
+                  <div key={year} className="flex justify-between">
+                    <span className="text-slate-400">{year}</span>
+                    <span className={`font-bold ${value >= 0 ? "text-[#00E599]" : "text-[#FF3B5C]"}`}>
+                      {fmtMoney(value)}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-muted text-xs uppercase">Daily</p>
-              <div className="mt-2 space-y-2 max-h-44 overflow-auto">
+            <div className="rounded-xl border border-white/10 bg-[#080C11] p-3">
+              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Daily Summary</p>
+              <div className="mt-2 space-y-2 max-h-44 overflow-auto font-mono text-xs">
                 {sortedDailyEntries.slice(0, 6).map(([day, value]) => (
-                  <div key={day} className="flex justify-between text-sm">
-                    <span className="text-muted">{new Date(day).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
-                    <span className={value >= 0 ? "text-accent" : "text-danger"}>{fmtMoney(value)}</span>
+                  <div key={day} className="flex justify-between">
+                    <span className="text-slate-400">
+                      {new Date(day).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    </span>
+                    <span className={`font-bold ${value >= 0 ? "text-[#00E599]" : "text-[#FF3B5C]"}`}>
+                      {fmtMoney(value)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -216,37 +225,54 @@ export default async function JournalPage() {
           </div>
         </div>
 
-        <div className="bg-panel border border-border rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">{currentMonthLabel}</h2>
-            <span className="text-muted text-xs">Daily P&L Calendar</span>
+        {/* Calendar Heatmap Grid */}
+        <div className="bg-[#12151E] border border-white/10 rounded-2xl p-5 shadow-xl space-y-3">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <h2 className="font-bold text-white text-base">{currentMonthLabel}</h2>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#00E599]/10 text-[#00E599] border border-[#00E599]/30 font-bold">
+              🗓️ Daily P&L Heatmap
+            </span>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 text-center text-[11px] text-muted">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="py-1">{day}</div>
-            ))}
-            {calendarCells.map((cell, index) => (
-              <div
-                key={`${cell.key}-${index}`}
-                className={`min-h-[64px] rounded-lg border p-1 ${
-                  cell.isCurrentMonth ? "border-border bg-background/40" : "border-border/40 bg-transparent opacity-40"
-                }`}
-              >
-                <div className="text-[11px] text-muted text-right">{cell.dayNumber}</div>
-                <div className={`mt-3 text-[11px] font-medium ${cell.pnl >= 0 ? "text-accent" : "text-danger"}`}>
-                  {cell.pnl !== 0 ? fmtMoney(cell.pnl) : "—"}
-                </div>
+          <div className="grid grid-cols-7 gap-1.5 text-center text-xs">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <div key={day} className="py-1 text-slate-400 font-bold text-[11px]">
+                {day}
               </div>
             ))}
+            {calendarCells.map((cell, index) => {
+              const hasPnl = cell.pnl !== 0;
+              const isProfit = cell.pnl > 0;
+
+              return (
+                <div
+                  key={`${cell.key}-${index}`}
+                  className={`min-h-[58px] rounded-xl border p-1.5 flex flex-col justify-between transition-all ${
+                    cell.isCurrentMonth
+                      ? hasPnl
+                        ? isProfit
+                          ? "bg-[#00E599]/15 border-[#00E599]/40 text-[#00E599]"
+                          : "bg-[#FF3B5C]/15 border-[#FF3B5C]/40 text-[#FF3B5C]"
+                        : "bg-[#080C11] border-white/5 text-slate-400"
+                      : "border-transparent bg-transparent opacity-20"
+                  }`}
+                >
+                  <div className="text-[10px] font-bold text-right text-slate-400">{cell.dayNumber}</div>
+                  <div className="text-[11px] font-extrabold font-mono text-center">
+                    {hasPnl ? fmtMoney(cell.pnl) : "—"}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      <div className="bg-panel border border-border rounded-xl overflow-x-auto">
-        <table className="w-full text-sm">
+      {/* Trade Log Table */}
+      <div className="bg-[#12151E] border border-white/10 rounded-2xl overflow-x-auto shadow-xl">
+        <table className="w-full text-xs text-left font-mono">
           <thead>
-            <tr className="border-b border-border text-muted text-left">
+            <tr className="border-b border-white/10 bg-[#080C11] text-slate-400 font-bold">
               <th className="p-3">Symbol</th>
               <th className="p-3">Side</th>
               <th className="p-3">Qty</th>
@@ -260,41 +286,49 @@ export default async function JournalPage() {
               <th className="p-3">Closed</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-white/5">
             {trades.length === 0 && (
               <tr>
-                <td colSpan={11} className="p-6 text-center text-muted">
-                  No trades recorded yet.
+                <td colSpan={11} className="p-6 text-center text-slate-500 font-sans">
+                  No trades recorded yet. Place paper trades on the terminal to populate your journal!
                 </td>
               </tr>
             )}
             {trades.map((t) => {
               const pnl = t.status === "CLOSED" ? t.pnl ?? 0 : livePnl(t);
               return (
-                <tr key={t.id} className="border-b border-border/50 hover:bg-panel2">
-                  <td className="p-3 font-medium">{t.symbol}</td>
+                <tr key={t.id} className="hover:bg-white/5 transition-colors">
+                  <td className="p-3 font-bold text-white">{t.symbol}</td>
                   <td className="p-3">
-                    <span className={t.side === "BUY" ? "text-accent" : "text-danger"}>{t.side}</span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        t.side === "BUY" ? "bg-[#00E599]/15 text-[#00E599]" : "bg-[#FF3B5C]/15 text-[#FF3B5C]"
+                      }`}
+                    >
+                      {t.side}
+                    </span>
                   </td>
                   <td className="p-3">{t.quantity}</td>
                   <td className="p-3">₹{t.entryPrice}</td>
                   <td className="p-3">{t.exitPrice ? `₹${t.exitPrice}` : "—"}</td>
                   <td className="p-3">{t.stopLoss ?? "—"}</td>
                   <td className="p-3">{t.target ?? "—"}</td>
-                  <td className={`p-3 font-medium ${pnl >= 0 ? "text-accent" : "text-danger"}`}>
-                    ₹{pnl.toFixed(2)}
+                  <td className={`p-3 font-bold ${pnl >= 0 ? "text-[#00E599]" : "text-[#FF3B5C]"}`}>
+                    {pnl >= 0 ? "+" : ""}₹{pnl.toFixed(2)}
                   </td>
                   <td className="p-3">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded ${
-                        t.status === "OPEN" ? "bg-yellow-500/20 text-yellow-400" : "bg-border text-muted"
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                        t.status === "OPEN"
+                          ? "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                          : "bg-slate-800 text-slate-400"
                       }`}
                     >
                       {t.status}
                     </span>
                   </td>
-                  <td className="p-3 text-muted">{fmtDate(t.createdAt)}</td>
-                  <td className="p-3 text-muted">{fmtDate(t.closedAt)}</td>
+                  <td className="p-3 text-slate-400">{fmtDate(t.createdAt)}</td>
+                  <td className="p-3 text-slate-400">{fmtDate(t.closedAt)}</td>
                 </tr>
               );
             })}

@@ -129,9 +129,9 @@ export default function FloatingOrderModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090A0F]/85 backdrop-blur-md animate-fadeIn">
-      {/* Modal Dialog Box */}
-      <div className="w-full max-w-md bg-[#12151E] border border-white/15 rounded-3xl shadow-[0_25px_90px_rgba(0,0,0,0.75)] overflow-hidden space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center max-md:items-end p-4 max-md:p-0 bg-[#090A0F]/85 backdrop-blur-md animate-fadeIn">
+      {/* Modal Dialog Box (Bottom Sheet on Mobile) */}
+      <div className="w-full max-w-md bg-[#12151E] border border-white/15 rounded-3xl max-md:rounded-b-none max-md:rounded-t-3xl shadow-[0_25px_90px_rgba(0,0,0,0.75)] overflow-hidden space-y-4 max-md:animate-slideUp">
         
         {/* Header Ribbon */}
         <div className={`p-4 border-b border-white/10 flex items-center justify-between ${
