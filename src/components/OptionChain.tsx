@@ -85,28 +85,30 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-5 space-y-4 shadow-xl">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/10 pb-3">
+    <div className="rounded-3xl border border-white/10 bg-[#12151E]/90 p-5 space-y-4 shadow-[0_25px_70px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/10 pb-3.5">
         <div>
-          <h2 className="font-extrabold text-base flex items-center gap-2">
-            <span>📈 Multi-Column Option Chain Matrix</span>
-            <span className="text-[10px] bg-accent/10 text-accent border border-accent/30 px-2 py-0.5 rounded-full font-bold">
-              Live Greeks Engine
+          <h2 className="font-extrabold text-base flex items-center gap-2 text-white">
+            <span>📈 Option Chain Matrix</span>
+            <span className="text-[10px] bg-[#00E599]/10 text-[#00E599] border border-[#00E599]/30 px-2.5 py-0.5 rounded-full font-bold">
+              Obsidian Glass Feed
             </span>
           </h2>
-          <p className="text-xs text-slate-400">
-            Real-time Call & Put Premiums, Delta ($\Delta$), Theta ($\Theta$), Implied Volatility (IV), and Open Interest (OI) in side-by-side columns.
+          <p className="text-xs text-slate-400 mt-0.5">
+            Real-time Call & Put Premiums, Delta ($\Delta$), Theta ($\Theta$), IV, and OI with ITM row shading.
           </p>
         </div>
 
         {/* Column View Toggle & Index Tabs */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Layout Toggle */}
-          <div className="flex bg-slate-950 p-1 rounded-xl border border-white/10 text-xs">
+          <div className="flex bg-[#080C11] p-1 rounded-xl border border-white/10 text-xs">
             <button
               onClick={() => setColumnMode("full")}
               className={`px-3 py-1 font-bold rounded-lg transition-all ${
-                columnMode === "full" ? "bg-accent text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                columnMode === "full"
+                  ? "bg-[#00E599] text-[#090A0F] shadow-[0_4px_14px_rgba(0,229,153,0.3)]"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               📊 Full Greeks Columns
@@ -114,7 +116,9 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
             <button
               onClick={() => setColumnMode("essential")}
               className={`px-3 py-1 font-bold rounded-lg transition-all ${
-                columnMode === "essential" ? "bg-accent text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                columnMode === "essential"
+                  ? "bg-[#00E599] text-[#090A0F] shadow-[0_4px_14px_rgba(0,229,153,0.3)]"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               ⚡ Compact
@@ -122,11 +126,13 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
           </div>
 
           {/* Index Tabs */}
-          <div className="flex bg-slate-950 p-1 rounded-xl border border-white/10 shrink-0 text-xs">
+          <div className="flex bg-[#080C11] p-1 rounded-xl border border-white/10 shrink-0 text-xs">
             <button
               onClick={() => setIndex("NIFTY")}
               className={`px-3 py-1 font-bold rounded-lg transition-all ${
-                index === "NIFTY" ? "bg-emerald-400 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                index === "NIFTY"
+                  ? "bg-[#00E599] text-[#090A0F] shadow-[0_4px_14px_rgba(0,229,153,0.3)]"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               NIFTY 50 (₹{niftySpot.toLocaleString("en-IN")})
@@ -134,7 +140,9 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
             <button
               onClick={() => setIndex("BANKNIFTY")}
               className={`px-3 py-1 font-bold rounded-lg transition-all ${
-                index === "BANKNIFTY" ? "bg-emerald-400 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                index === "BANKNIFTY"
+                  ? "bg-[#00E599] text-[#090A0F] shadow-[0_4px_14px_rgba(0,229,153,0.3)]"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               BANK NIFTY (₹{bankniftySpot.toLocaleString("en-IN")})
@@ -144,38 +152,38 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
       </div>
 
       {/* Side-by-Side Multi-Column Option Chain Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-2xl border border-white/10">
         <table className="w-full text-center text-xs">
-          <thead className="border-b border-white/10 text-slate-400 font-semibold bg-slate-950/80">
+          <thead className="border-b border-white/10 text-slate-400 font-semibold bg-[#080C11]">
             <tr>
               {/* CALL SIDE */}
               {columnMode === "full" && (
                 <>
-                  <th className="py-2.5 px-2 text-slate-400 font-mono">CALL OI</th>
-                  <th className="py-2.5 px-2 text-amber-300 font-mono">IV %</th>
-                  <th className="py-2.5 px-2 text-slate-300 font-mono">Theta Θ</th>
-                  <th className="py-2.5 px-2 text-emerald-400 font-mono">Delta Δ</th>
+                  <th className="py-3 px-2 text-slate-400 font-mono">CALL OI</th>
+                  <th className="py-3 px-2 text-amber-300 font-mono">IV %</th>
+                  <th className="py-3 px-2 text-slate-400 font-mono">Theta Θ</th>
+                  <th className="py-3 px-2 text-[#00E599] font-mono">Delta Δ</th>
                 </>
               )}
               {columnMode === "essential" && (
-                <th className="py-2.5 px-2 text-emerald-400 font-mono">Delta Δ</th>
+                <th className="py-3 px-2 text-[#00E599] font-mono">Delta Δ</th>
               )}
-              <th className="py-2.5 px-3 text-emerald-400 bg-emerald-950/30 font-bold">CALL PREMIUM (CE)</th>
+              <th className="py-3 px-3 text-[#00E599] bg-[#00E599]/10 font-bold">CALL PREMIUM (CE)</th>
 
               {/* CENTER STRIKE */}
-              <th className="py-2.5 px-4 text-white font-extrabold bg-slate-950">STRIKE</th>
+              <th className="py-3 px-4 text-white font-extrabold bg-[#05070A] border-x border-white/10">STRIKE</th>
 
               {/* PUT SIDE */}
-              <th className="py-2.5 px-3 text-rose-400 bg-rose-950/30 font-bold">PUT PREMIUM (PE)</th>
+              <th className="py-3 px-3 text-[#FF3B5C] bg-[#FF3B5C]/10 font-bold">PUT PREMIUM (PE)</th>
               {columnMode === "essential" && (
-                <th className="py-2.5 px-2 text-rose-400 font-mono">Delta Δ</th>
+                <th className="py-3 px-2 text-[#FF3B5C] font-mono">Delta Δ</th>
               )}
               {columnMode === "full" && (
                 <>
-                  <th className="py-2.5 px-2 text-rose-400 font-mono">Delta Δ</th>
-                  <th className="py-2.5 px-2 text-slate-300 font-mono">Theta Θ</th>
-                  <th className="py-2.5 px-2 text-amber-300 font-mono">IV %</th>
-                  <th className="py-2.5 px-2 text-slate-400 font-mono">PUT OI</th>
+                  <th className="py-3 px-2 text-[#FF3B5C] font-mono">Delta Δ</th>
+                  <th className="py-3 px-2 text-slate-400 font-mono">Theta Θ</th>
+                  <th className="py-3 px-2 text-amber-300 font-mono">IV %</th>
+                  <th className="py-3 px-2 text-slate-400 font-mono">PUT OI</th>
                 </>
               )}
             </tr>
@@ -188,41 +196,50 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
               const peGreeks = getGreeks(strike, false);
 
               const isAtm = strike === baseStrike;
+              const isCallITM = strike < baseStrike;
+              const isPutITM = strike > baseStrike;
+
               const symbolCE = `${index} ${strike} CE`;
               const symbolPE = `${index} ${strike} PE`;
 
               return (
                 <tr
                   key={strike}
-                  className={`hover:bg-white/5 transition-colors ${
-                    isAtm ? "bg-emerald-400/10 font-bold" : ""
+                  className={`hover:bg-white/10 transition-colors ${
+                    isAtm
+                      ? "bg-[#38BDF8]/10 font-bold"
+                      : isCallITM
+                      ? "bg-[#00E599]/[0.05]"
+                      : isPutITM
+                      ? "bg-[#FF3B5C]/[0.05]"
+                      : ""
                   }`}
                 >
                   {/* CALL SIDE GREEKS & OI COLUMNS */}
                   {columnMode === "full" && (
                     <>
-                      <td className="py-2 px-2 text-slate-400 text-[11px]">
+                      <td className="py-2.5 px-2 text-slate-400 text-[11px]">
                         {(ceGreeks.oi / 1000).toFixed(1)}k
                       </td>
-                      <td className="py-2 px-2 text-amber-300 font-semibold text-[11px]">
+                      <td className="py-2.5 px-2 text-amber-300 font-semibold text-[11px]">
                         {ceGreeks.iv}%
                       </td>
-                      <td className="py-2 px-2 text-slate-400 text-[11px]">
+                      <td className="py-2.5 px-2 text-slate-400 text-[11px]">
                         {ceGreeks.theta}
                       </td>
-                      <td className="py-2 px-2 text-emerald-400 font-bold text-[11px]">
+                      <td className="py-2.5 px-2 text-[#00E599] font-bold text-[11px]">
                         +{ceGreeks.delta}
                       </td>
                     </>
                   )}
                   {columnMode === "essential" && (
-                    <td className="py-2 px-2 text-emerald-400 font-bold text-[11px]">
+                    <td className="py-2.5 px-2 text-[#00E599] font-bold text-[11px]">
                       +{ceGreeks.delta}
                     </td>
                   )}
 
                   {/* CALL PREMIUM BUTTON */}
-                  <td className="py-1.5 px-2 bg-emerald-950/20">
+                  <td className="py-1.5 px-2 bg-[#00E599]/[0.08]">
                     <button
                       onClick={() =>
                         onSelectOption({
@@ -231,23 +248,27 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
                           quantity: lotSize,
                         })
                       }
-                      className="w-full rounded-lg bg-emerald-400/15 hover:bg-emerald-400/30 text-emerald-300 border border-emerald-400/30 py-1.5 px-3 font-semibold flex items-center justify-between transition-all group"
+                      className="w-full rounded-xl bg-[#00E599]/15 hover:bg-[#00E599]/30 text-[#00E599] border border-[#00E599]/40 py-1.5 px-3 font-semibold flex items-center justify-between transition-all group shadow-sm"
                     >
                       <span className="font-bold text-sm">₹{cePrice}</span>
-                      <span className="text-[10px] bg-emerald-400 text-slate-950 px-1.5 py-0.5 rounded font-bold group-hover:scale-105">
+                      <span className="text-[10px] bg-[#00E599] text-[#090A0F] px-1.5 py-0.5 rounded-md font-extrabold group-hover:scale-105">
                         BUY CE
                       </span>
                     </button>
                   </td>
 
-                  {/* CENTER STRIKE COLUMN */}
-                  <td className="py-2 px-3 font-extrabold text-white text-sm bg-slate-950 font-sans">
+                  {/* CENTER STRIKE COLUMN (Dark Spine) */}
+                  <td className="py-2.5 px-3 font-extrabold text-white text-sm bg-[#05070A] border-x border-white/10 font-sans">
                     {strike}
-                    {isAtm && <span className="block text-[9px] text-amber-300 font-normal">● ATM</span>}
+                    {isAtm && (
+                      <span className="block text-[9px] text-[#38BDF8] font-bold bg-[#38BDF8]/20 border border-[#38BDF8]/40 px-1 rounded-full mt-0.5">
+                        ● ATM
+                      </span>
+                    )}
                   </td>
 
                   {/* PUT PREMIUM BUTTON */}
-                  <td className="py-1.5 px-2 bg-rose-950/20">
+                  <td className="py-1.5 px-2 bg-[#FF3B5C]/[0.08]">
                     <button
                       onClick={() =>
                         onSelectOption({
@@ -256,9 +277,9 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
                           quantity: lotSize,
                         })
                       }
-                      className="w-full rounded-lg bg-rose-400/15 hover:bg-rose-400/30 text-rose-300 border border-rose-400/30 py-1.5 px-3 font-semibold flex items-center justify-between transition-all group"
+                      className="w-full rounded-xl bg-[#FF3B5C]/15 hover:bg-[#FF3B5C]/30 text-[#FF3B5C] border border-[#FF3B5C]/40 py-1.5 px-3 font-semibold flex items-center justify-between transition-all group shadow-sm"
                     >
-                      <span className="text-[10px] bg-rose-500 text-white px-1.5 py-0.5 rounded font-bold group-hover:scale-105">
+                      <span className="text-[10px] bg-[#FF3B5C] text-white px-1.5 py-0.5 rounded-md font-extrabold group-hover:scale-105">
                         BUY PE
                       </span>
                       <span className="font-bold text-sm">₹{pePrice}</span>
@@ -267,22 +288,22 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
 
                   {/* PUT SIDE GREEKS & OI COLUMNS */}
                   {columnMode === "essential" && (
-                    <td className="py-2 px-2 text-rose-400 font-bold text-[11px]">
+                    <td className="py-2.5 px-2 text-[#FF3B5C] font-bold text-[11px]">
                       {peGreeks.delta}
                     </td>
                   )}
                   {columnMode === "full" && (
                     <>
-                      <td className="py-2 px-2 text-rose-400 font-bold text-[11px]">
+                      <td className="py-2.5 px-2 text-[#FF3B5C] font-bold text-[11px]">
                         {peGreeks.delta}
                       </td>
-                      <td className="py-2 px-2 text-slate-400 text-[11px]">
+                      <td className="py-2.5 px-2 text-slate-400 text-[11px]">
                         {peGreeks.theta}
                       </td>
-                      <td className="py-2 px-2 text-amber-300 font-semibold text-[11px]">
+                      <td className="py-2.5 px-2 text-amber-300 font-semibold text-[11px]">
                         {peGreeks.iv}%
                       </td>
-                      <td className="py-2 px-2 text-slate-400 text-[11px]">
+                      <td className="py-2.5 px-2 text-slate-400 text-[11px]">
                         {(peGreeks.oi / 1000).toFixed(1)}k
                       </td>
                     </>

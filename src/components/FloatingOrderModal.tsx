@@ -129,20 +129,20 @@ export default function FloatingOrderModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090A0F]/85 backdrop-blur-md animate-fadeIn">
       {/* Modal Dialog Box */}
-      <div className="w-full max-w-md bg-slate-900 border border-white/15 rounded-3xl shadow-[0_25px_80px_rgba(0,0,0,0.6)] overflow-hidden space-y-4">
+      <div className="w-full max-w-md bg-[#12151E] border border-white/15 rounded-3xl shadow-[0_25px_90px_rgba(0,0,0,0.75)] overflow-hidden space-y-4">
         
         {/* Header Ribbon */}
         <div className={`p-4 border-b border-white/10 flex items-center justify-between ${
-          side === "BUY" ? "bg-emerald-500/10" : "bg-rose-500/10"
+          side === "BUY" ? "bg-[#00E599]/10" : "bg-[#FF3B5C]/10"
         }`}>
           <div>
             <div className="flex items-center gap-2">
-              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+              <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
                 side === "BUY"
-                  ? "bg-emerald-400 text-slate-950 border-emerald-400"
-                  : "bg-rose-500 text-white border-rose-500"
+                  ? "bg-[#00E599] text-[#090A0F] border-[#00E599]"
+                  : "bg-[#FF3B5C] text-white border-[#FF3B5C]"
               }`}>
                 {side}
               </span>
@@ -163,13 +163,13 @@ export default function FloatingOrderModal({
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4 pt-1">
           {/* Side Toggle: BUY vs SELL */}
-          <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-2xl border border-white/10">
+          <div className="grid grid-cols-2 gap-2 bg-[#080C11] p-1 rounded-2xl border border-white/10">
             <button
               type="button"
               onClick={() => setSide("BUY")}
               className={`py-2 rounded-xl text-xs font-extrabold transition-all ${
                 side === "BUY"
-                  ? "bg-emerald-400 text-slate-950 shadow-[0_4px_14px_rgba(52,211,153,0.3)]"
+                  ? "bg-[#00E599] text-[#090A0F] shadow-[0_4px_14px_rgba(0,229,153,0.35)]"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -180,7 +180,7 @@ export default function FloatingOrderModal({
               onClick={() => setSide("SELL")}
               className={`py-2 rounded-xl text-xs font-extrabold transition-all ${
                 side === "SELL"
-                  ? "bg-rose-500 text-white shadow-[0_4px_14px_rgba(244,63,94,0.3)]"
+                  ? "bg-[#FF3B5C] text-white shadow-[0_4px_14px_rgba(255,59,92,0.35)]"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -191,7 +191,7 @@ export default function FloatingOrderModal({
           {/* Order Type: Market vs Limit */}
           <div className="flex items-center justify-between text-xs text-slate-300 font-semibold px-1">
             <span>Order Type:</span>
-            <div className="flex bg-slate-950 p-1 rounded-xl border border-white/10">
+            <div className="flex bg-[#080C11] p-1 rounded-xl border border-white/10">
               <button
                 type="button"
                 onClick={() => {
@@ -199,7 +199,7 @@ export default function FloatingOrderModal({
                   setEntryPrice(String(initialEntryPrice));
                 }}
                 className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                  orderType === "MARKET" ? "bg-accent text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                  orderType === "MARKET" ? "bg-[#00E599] text-[#090A0F] shadow" : "text-slate-400 hover:text-white"
                 }`}
               >
                 Market (LTP)
@@ -208,7 +208,7 @@ export default function FloatingOrderModal({
                 type="button"
                 onClick={() => setOrderType("LIMIT")}
                 className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                  orderType === "LIMIT" ? "bg-accent text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                  orderType === "LIMIT" ? "bg-[#00E599] text-[#090A0F] shadow" : "text-slate-400 hover:text-white"
                 }`}
               >
                 Limit Price
@@ -217,7 +217,7 @@ export default function FloatingOrderModal({
           </div>
 
           {/* Lot Stepper Controls */}
-          <div className="bg-slate-950/70 border border-white/10 p-3.5 rounded-2xl space-y-2">
+          <div className="bg-[#080C11] border border-white/10 p-3.5 rounded-2xl space-y-2">
             <div className="flex justify-between items-center text-xs">
               <span className="text-slate-400 font-semibold">Lots (Qty)</span>
               <span className="text-emerald-400 font-bold font-mono">
