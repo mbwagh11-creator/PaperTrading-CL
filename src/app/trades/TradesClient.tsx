@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import TradeForm from "@/components/TradeForm";
 import OpenTrades from "@/components/OpenTrades";
 import OptionChain from "@/components/OptionChain";
+import FloatingOrderModal from "@/components/FloatingOrderModal";
 
 interface Trade {
   id: string;
@@ -23,7 +24,9 @@ export default function TradesClient() {
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [marketStatusText, setMarketStatusText] = useState("Connecting to Live Real NSE Data Feed...");
   const [isMarketOpen, setIsMarketOpen] = useState(false);
+  const [subStatus, setSubStatus] = useState<string>("TRIAL");
   const [selectedOption, setSelectedOption] = useState<{ symbol: string; entryPrice: number; quantity: number } | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -47,11 +50,20 @@ export default function TradesClient() {
 
   async function checkMarketHours() {
     try {
-      const res = await fetch("/api/market/quote?symbol=NIFTY");
-      const data = await res.json();
+      const [quoteRes, subRes] = await Promise.all([
+        fetch("/api/market/quote?symbol=NIFTY"),
+        fetch("/api/subscription/status").catch(() => null),
+      ]);
+      const data = await quoteRes.json();
       if (data.statusText) {
         setMarketStatusText(data.statusText);
         setIsMarketOpen(Boolean(data.isMarketOpen));
+      }
+      if (subRes && subRes.ok) {
+        const subData = await subRes.json();
+        if (subData.subscription?.status) {
+          setSubStatus(subData.subscription.status);
+        }
       }
     } catch {
       // fallback
@@ -69,8 +81,27 @@ export default function TradesClient() {
     return () => clearInterval(interval);
   }, [load]);
 
+  function handleOptionSelect(opt: { symbol: string; entryPrice: number; quantity: number }) {
+    setSelectedOption(opt);
+    setIsModalOpen(true);
+  }
+
   return (
     <div className="space-y-6">
+      {/* Floating Order Ticket Modal */}
+      {selectedOption && (
+        <FloatingOrderModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          initialSymbol={selectedOption.symbol}
+          initialEntryPrice={selectedOption.entryPrice}
+          initialQuantity={selectedOption.quantity}
+          onOrderCreated={refreshSilent}
+          isMarketOpen={isMarketOpen}
+          subStatus={subStatus}
+        />
+      )}
+
       <div>
         <h1 className="text-2xl font-bold mb-1">NSE Options Paper Trading Terminal</h1>
         <p className="text-muted">
@@ -113,8 +144,8 @@ export default function TradesClient() {
         </span>
       </div>
 
-      {/* Feature 1: Interactive Option Chain Table */}
-      <OptionChain onSelectOption={(opt) => setSelectedOption(opt)} />
+      {/* Interactive Option Chain Table with Greeks & Floating Modal Trigger */}
+      <OptionChain onSelectOption={handleOptionSelect} />
 
       <div className="grid md:grid-cols-[380px_1fr] gap-6 items-start">
         <TradeForm onCreated={refreshSilent} selectedOption={selectedOption} />
