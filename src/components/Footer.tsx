@@ -26,6 +26,7 @@ export default function Footer() {
               <li><Link href="/trades" className="hover:text-accent transition-colors">Paper Trading</Link></li>
               <li><Link href="/journal" className="hover:text-accent transition-colors">Trade Journal</Link></li>
               <li><Link href="/analytics" className="hover:text-accent transition-colors">Performance Analytics</Link></li>
+              <li><Link href="/feedback" className="hover:text-accent transition-colors text-emerald-400 font-semibold">User Feedback 💬</Link></li>
             </ul>
           </div>
 

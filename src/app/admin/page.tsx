@@ -21,9 +21,20 @@ interface StatsData {
   totalTrades: number;
 }
 
+interface FeedbackAdminItem {
+  id: string;
+  name: string;
+  email: string;
+  category: string;
+  rating: number;
+  message: string;
+  createdAt: string;
+}
+
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [users, setUsers] = useState<UserItem[]>([]);
+  const [feedbacks, setFeedbacks] = useState<FeedbackAdminItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -33,12 +44,21 @@ export default function AdminDashboardPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/stats");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load admin stats");
+      const [statsRes, feedRes] = await Promise.all([
+        fetch("/api/admin/stats"),
+        fetch("/api/feedback").catch(() => null),
+      ]);
+
+      const data = await statsRes.json();
+      if (!statsRes.ok) throw new Error(data.error || "Failed to load admin stats");
 
       setStats(data.stats);
       setUsers(data.recentUsers || []);
+
+      if (feedRes && feedRes.ok) {
+        const feedData = await feedRes.json();
+        if (feedData.feedbacks) setFeedbacks(feedData.feedbacks);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load dashboard");
     } finally {
@@ -221,6 +241,72 @@ export default function AdminDashboardPage() {
                               </button>
                             </div>
                           </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* User Feedback & Feature Requests Directory */}
+            <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/60 p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold">💬 User Feedback & Rating Logs</h2>
+                  <span className="text-[10px] bg-emerald-400/10 text-emerald-300 border border-emerald-400/30 px-2 py-0.5 rounded-full font-bold">
+                    {feedbacks.length} Total
+                  </span>
+                </div>
+                <Link href="/feedback" className="text-xs text-accent hover:underline">
+                  Public Feedback Page →
+                </Link>
+              </div>
+
+              {feedbacks.length === 0 ? (
+                <p className="text-xs text-slate-400 py-6 text-center">No feedback submissions received yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="border-b border-white/10 text-slate-400 uppercase tracking-wider font-semibold">
+                      <tr>
+                        <th className="py-3 px-3">Date</th>
+                        <th className="py-3 px-3">User / Email</th>
+                        <th className="py-3 px-3">Category</th>
+                        <th className="py-3 px-3">Rating</th>
+                        <th className="py-3 px-3">Message</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {feedbacks.map((f) => (
+                        <tr key={f.id} className="hover:bg-white/5 transition-colors">
+                          <td className="py-3 px-3 text-slate-400 font-mono whitespace-nowrap">
+                            {new Date(f.createdAt).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="font-semibold text-white block">{f.name}</span>
+                            <span className="text-[11px] text-slate-400 font-mono">{f.email}</span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/5 border border-white/10 text-slate-300">
+                              {f.category}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex text-amber-400">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <span key={i} className={i < f.rating ? "text-amber-400" : "text-slate-700"}>
+                                  ★
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-slate-200 max-w-sm truncate">{f.message}</td>
                         </tr>
                       ))}
                     </tbody>

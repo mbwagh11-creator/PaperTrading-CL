@@ -100,6 +100,9 @@ export default function Navbar() {
           <Link href="/books" className="rounded-full px-3 py-1.5 transition-all hover:bg-white/10 hover:text-white">
             Books 📚
           </Link>
+          <Link href="/feedback" className="rounded-full px-3 py-1.5 transition-all hover:bg-white/10 hover:text-white">
+            Feedback 💬
+          </Link>
 
           {(user?.email === "mbwagh11@gmail.com" || sub?.status === "LIFETIME") && (
             <Link
@@ -212,6 +215,13 @@ export default function Navbar() {
               className="bg-white/5 hover:bg-white/10 text-slate-200 p-3 rounded-xl flex items-center gap-2 border border-white/5 font-medium"
             >
               📚 E-Books
+            </Link>
+            <Link
+              href="/feedback"
+              onClick={() => setMobileMenuOpen(false)}
+              className="bg-white/5 hover:bg-white/10 text-slate-200 p-3 rounded-xl flex items-center gap-2 border border-white/5 font-medium"
+            >
+              💬 Feedback
             </Link>
             {(user?.email === "mbwagh11@gmail.com" || sub?.status === "LIFETIME") && (
               <Link

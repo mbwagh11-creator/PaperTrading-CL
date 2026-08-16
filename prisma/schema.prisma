@@ -90,3 +90,17 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
 }
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  name      String
+  email     String
+  category  String   @default("General")
+  rating    Int      @default(5)
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([category])
+}
