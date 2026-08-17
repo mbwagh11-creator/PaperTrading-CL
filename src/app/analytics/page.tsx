@@ -63,17 +63,18 @@ export default async function AnalyticsPage() {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Stat label="Total Closed Trades" value={String(a.totalTrades)} />
-            <Stat label="Win Rate" value={`${a.winRate}%`} />
-            <Stat label="Total P&L" value={`₹${a.totalPnl.toFixed(2)}`} tone={a.totalPnl >= 0 ? "up" : "down"} />
+            <Stat label="Win Rate" value={`${a.winRate}%`} tone={a.winRate >= 50 ? "up" : "down"} />
+            <Stat label="Total Realized P&L" value={`₹${a.totalPnl.toFixed(2)}`} tone={a.totalPnl >= 0 ? "up" : "down"} />
             <Stat
               label="Profit Factor"
-              value={a.profitFactor === null ? "∞" : a.profitFactor.toFixed(2)}
+              value={a.profitFactor === null ? "—" : a.profitFactor.toFixed(2)}
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-4">
             <Stat label="Wins" value={String(a.wins)} tone="up" />
             <Stat label="Losses" value={String(a.losses)} tone="down" />
+            <Stat label="Breakeven (0 P&L)" value={String(a.breakeven)} />
             <Stat label="Avg Win" value={`₹${a.avgWin.toFixed(2)}`} tone="up" />
             <Stat label="Avg Loss" value={`₹${a.avgLoss.toFixed(2)}`} tone="down" />
           </div>
