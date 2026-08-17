@@ -76,11 +76,30 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
       return Number(apiPrice.toFixed(1));
     }
 
-    const diff = isCE ? spotPrice - strike : strike - spotPrice;
-    const intrinsic = Math.max(0, diff);
-    const distanceFactor = Math.abs(spotPrice - strike) / spotPrice;
-    const timeValue = (index === "NIFTY" ? 95.0 : 185.0) * Math.max(0.08, 1 - distanceFactor * 4.5);
-    return Number(Math.max(15, intrinsic + timeValue).toFixed(1));
+    const isBank = index === "BANKNIFTY";
+    const futuresOffset = isBank ? 200 : 25;
+    const baseAtmTimeVal = isBank ? 312.5 : 120.0;
+    const decayRate = isBank ? 0.0012 : 0.0025;
+
+    const dist = Math.abs(strike - spotPrice);
+    const otmExtrinsic = baseAtmTimeVal * Math.exp(-decayRate * dist);
+
+    let ltp = 0;
+    if (isCE) {
+      if (strike <= spotPrice) {
+        ltp = (spotPrice - strike) + otmExtrinsic + futuresOffset * Math.max(0.2, 1 - dist / 2000);
+      } else {
+        ltp = baseAtmTimeVal * Math.exp(-decayRate * (strike - spotPrice)) * 1.65;
+      }
+    } else {
+      if (strike >= spotPrice) {
+        ltp = (strike - spotPrice) + otmExtrinsic * 0.85;
+      } else {
+        ltp = otmExtrinsic;
+      }
+    }
+
+    return Number(Math.max(15, ltp).toFixed(1));
   }
 
   // Black-Scholes & Option Greeks Calculator
