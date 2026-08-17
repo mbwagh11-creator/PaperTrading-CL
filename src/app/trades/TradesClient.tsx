@@ -79,7 +79,7 @@ export default function TradesClient() {
   useEffect(() => {
     load();
     checkMarketHours();
-    const interval = setInterval(checkMarketHours, 10000);
+    const interval = setInterval(checkMarketHours, 1000);
     return () => clearInterval(interval);
   }, [load]);
 
@@ -125,7 +125,7 @@ export default function TradesClient() {
       <div>
         <h1 className="text-2xl font-bold mb-1">NSE Options Paper Trading Terminal</h1>
         <p className="text-muted">
-          Simulate NSE options & stock trades with real-time live market quotes and zero financial risk.
+          Simulate NSE options & stock trades with delayed market quotes and zero financial risk.
         </p>
       </div>
 

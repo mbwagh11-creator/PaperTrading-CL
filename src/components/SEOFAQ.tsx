@@ -6,27 +6,27 @@ const FAQ_ITEMS = [
   {
     question: "What is PRO-TRADER paper trading?",
     answer:
-      "PRO-TRADER is a real-time paper trading platform for Indian stock market derivatives. It lets traders practice buying and selling NSE Nifty 50, Nifty Bank, and stock options with virtual money using live market quotes before risking real capital.",
+      "PRO-TRADER is an educational paper trading platform for Indian stock market derivatives. It lets traders practice buying and selling NSE Nifty 50, Nifty Bank, and stock options with virtual money using delayed market quotes before risking real capital.",
   },
   {
     question: "Is paper trading on PRO-TRADER completely free?",
     answer:
-      "Yes! Every user gets a 7-day full feature free trial with zero risk. Afterward, you can upgrade to the PRO plan for just ₹149/month to get unlimited paper trades, live market quotes, trade journal, and performance analytics.",
+      "Yes! Every user gets a 7-day full feature free trial with zero risk. Afterward, you can upgrade to the PRO plan for just ₹149/month to get unlimited paper trades, market quotes simulator, trade journal, and performance analytics.",
   },
   {
     question: "How are NSE option prices and P&L calculated?",
     answer:
-      "PRO-TRADER fetches real-time market data quotes from NSE indices and stocks. Option strike premiums (Call & Put options) are calculated dynamically using Black-Scholes pricing models, current spot prices, and volatility models, updated continuously.",
+      "PRO-TRADER fetches market data quotes from public NSE indices and option chain feeds. Option strike premiums (Call & Put options) are calculated dynamically using option pricing models and delayed market quotes.",
   },
   {
     question: "Do I need a broker account or API keys?",
     answer:
-      "No! PRO-TRADER runs on a 100% standalone, real-time NSE market quote engine. You can start paper trading immediately without connecting any broker accounts or API keys.",
+      "No! PRO-TRADER runs on a 100% standalone, educational market quote engine. You can start paper trading immediately without connecting any broker accounts or API keys.",
   },
   {
     question: "How does the Trade Journal work?",
     answer:
-      "The Trade Journal automatically records every order you execute. It groups your trades by day, month, and year, producing a visual daily P&L calendar heatmap, win rate stats, average profit/loss breakdown, and total closed P&L metrics.",
+      "The Trade Journal automatically records every paper order you execute. It groups your trades by day, month, and year, producing a visual daily P&L calendar heatmap, win rate stats, average profit/loss breakdown, and total closed P&L metrics.",
   },
 ];
 

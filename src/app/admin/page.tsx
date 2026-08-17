@@ -101,7 +101,7 @@ export default function AdminDashboardPage() {
             </span>
             <h1 className="mt-2 text-3xl font-extrabold">Subscriber & User Management</h1>
             <p className="text-sm text-slate-400">
-              Live real-time monitoring of registered traders, active PRO subscribers, and 1-click user management.
+              Monitoring of registered traders, active PRO subscribers, and 1-click user management.
             </p>
           </div>
           <div className="flex gap-3">

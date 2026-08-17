@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "NSE Options Paper Trading Terminal | Nifty & Bank Nifty Simulator",
   description:
-    "Place virtual trades on NSE Call & Put options, stocks, and index derivatives. Track real-time P&L with 5-second market quote updates.",
+    "Place virtual paper trades on NSE Call & Put options, stocks, and index derivatives. Track simulated P&L with automated market quote updates.",
   keywords: [
     "NSE options paper trading terminal",
     "Nifty 50 option calculator",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "NSE Options Paper Trading Terminal | PRO-TRADER",
-    description: "Simulate Indian stock market options trades in real-time with zero risk.",
+    description: "Simulate Indian stock market options trades with zero risk for educational practice.",
     url: "/trades",
   },
 };

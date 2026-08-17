@@ -211,7 +211,7 @@ export default function PricingClient() {
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-amber-400 font-bold">✓</span>
-                <span>Real-time NSE option chain & live quotes</span>
+                <span>NSE option chain & delayed market quotes</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-amber-400 font-bold">✓</span>
@@ -276,7 +276,7 @@ export default function PricingClient() {
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-emerald-400 font-bold">✓</span>
-                <span>Real-time Risk/Reward calculator</span>
+                <span>Dynamic Risk/Reward calculator</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-emerald-400 font-bold">✓</span>

@@ -29,12 +29,12 @@ export default async function DashboardPage() {
         <section className="text-center space-y-6 max-w-4xl mx-auto pt-6">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-accent text-xs font-semibold uppercase tracking-wider">
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-            Live NSE Market Quotes & Option Chain Simulator
+            Educational NSE Market Quotes & Option Chain Simulator
           </div>
 
           {/* Educational Purpose & SEBI Disclaimer Banner */}
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center text-xs text-amber-200/90 leading-relaxed max-w-3xl mx-auto shadow-lg backdrop-blur-md">
-            ⚠️ <strong>Important Educational & Risk Disclaimer:</strong> PRO-TRADER is strictly a 100% paper-trading options simulator for educational, practice, and analytical purposes only. All trades use virtual money. This platform does not guarantee any profits, does not provide investment or financial advice, and is not a SEBI registered entity.
+          <div className="rounded-xl border border-rose-500/40 bg-rose-950/20 p-4 text-center text-xs text-rose-300 leading-relaxed max-w-3xl mx-auto shadow-lg backdrop-blur-md">
+            ⚠️ <strong>Important Educational & Risk Disclaimer:</strong> PRO-TRADER is strictly a paper-trading options simulator for educational, practice, and analytical purposes only. We provide delayed market data, and no real-time trading is available. All trades use virtual money. This platform does not offer investment advice or endorse any investment strategies.
           </div>
 
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white leading-tight tracking-tight">
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
           </h1>
 
           <p className="text-slate-300 text-base md:text-xl max-w-2xl mx-auto leading-relaxed">
-            Practice trading Indian stock market options with virtual money. Master Nifty 50, Nifty Bank, and stock option strategies risk-free using real-time quotes, automated P&L journal, and performance analytics.
+            Practice trading Indian stock market options with virtual money. Master Nifty 50, Nifty Bank, and stock option strategies risk-free using market quotes simulator, automated P&L journal, and performance analytics.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
@@ -66,8 +66,8 @@ export default async function DashboardPage() {
               <p className="text-xs text-muted">Virtual Starting Capital</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-accent">1 Second</p>
-              <p className="text-xs text-muted">Live Market Quote Refresh</p>
+              <p className="text-2xl font-bold text-accent">Delayed Data</p>
+              <p className="text-xs text-muted">Educational Market Feed</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-white">Nifty & Bank Nifty</p>
@@ -96,9 +96,9 @@ export default async function DashboardPage() {
               <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/30 text-accent flex items-center justify-center font-bold text-lg">
                 📈
               </div>
-              <h3 className="text-lg font-bold text-white">Real-Time NSE Options Simulator</h3>
+              <h3 className="text-lg font-bold text-white">NSE Options Simulator</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Test Call (CE) and Put (PE) option trades across Nifty 50, Bank Nifty, and top NSE stocks with live strike premium calculations.
+                Test Call (CE) and Put (PE) option trades across Nifty 50, Bank Nifty, and top NSE stocks with simulated strike premium calculations.
               </p>
             </div>
 
@@ -116,9 +116,9 @@ export default async function DashboardPage() {
               <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/30 text-accent flex items-center justify-center font-bold text-lg">
                 ⚡
               </div>
-              <h3 className="text-lg font-bold text-white">Live P&L Tracking & Analytics</h3>
+              <h3 className="text-lg font-bold text-white">Simulated P&L Tracking & Analytics</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Watch open positions update in real time with 1-second auto-refresh. Analyze win rates, profit factor, average win/loss ratio, and drawdowns.
+                Watch open paper positions update automatically. Analyze win rates, profit factor, average win/loss ratio, and drawdowns.
               </p>
             </div>
           </div>
@@ -131,10 +131,10 @@ export default async function DashboardPage() {
               100% Free & Automated
             </span>
             <h3 className="text-2xl font-bold text-white">
-              Instant Real-Time NSE Market Feed
+              Instant Educational NSE Market Feed
             </h3>
             <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
-              Paper trade Nifty 50, Bank Nifty, and stock options with automated live market price updates. Zero broker account or API key configuration needed.
+              Paper trade Nifty 50, Bank Nifty, and stock options with automated market price updates. Zero broker account or API key configuration needed.
             </p>
           </div>
           <Link

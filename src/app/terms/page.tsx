@@ -40,18 +40,18 @@ export default function TermsPage() {
         </section>
 
         {/* 2. Educational & Simulation Nature */}
-        <section className="space-y-3 rounded-2xl border border-accent/30 bg-accent/5 p-5">
-          <h2 className="text-lg font-bold text-accent">
-            2. Financial Disclaimer & Virtual Paper Trading Nature
+        <section className="space-y-3 rounded-2xl border border-rose-500/40 bg-rose-950/20 p-5 text-rose-200">
+          <h2 className="text-lg font-bold text-rose-400">
+            2. Educational & Virtual Paper Trading Nature (Strictly Non-Advisory)
           </h2>
           <p>
-            <strong>PRO-TRADER is an educational market simulator and paper trading tool.</strong> The platform uses virtual money ("Virtual Cash") to allow users to practice trading Indian Stock Market (NSE) equity and options contracts.
+            <strong>PRO-TRADER is a paper trading platform designed solely for educational purposes.</strong> We provide delayed market data, and no real-time trading is available. There are no investment-related activities or monetary benefits associated with this application. We do not offer investment advice or endorse any investment strategies.
           </p>
-          <ul className="list-disc pl-5 space-y-1 text-slate-200">
+          <ul className="list-disc pl-5 space-y-1 text-slate-200 text-xs">
             <li>No real money or actual capital is traded, deposited, or risked on PRO-TRADER.</li>
             <li>Virtual P&L, account balances, and portfolio returns have zero real cash value and cannot be withdrawn or exchanged for legal tender.</li>
             <li>PRO-TRADER is <strong>NOT</strong> a SEBI-registered stockbroker, investment advisor, or portfolio manager. Nothing on this platform constitutes financial, investment, legal, or tax advice.</li>
-            <li>Past performance simulated on this platform does not guarantee future results in live stock trading.</li>
+            <li>If anyone contacts you claiming to provide investment services or advice under the PRO-TRADER name, please be aware that PRO-TRADER is not responsible for such activities and holds no liability for them. Report such incidents immediately to support@pro-trader.in.</li>
           </ul>
         </section>
 
@@ -76,11 +76,11 @@ export default function TermsPage() {
           </ul>
         </section>
 
-        {/* 5. Third-Party Integrations (Upstox API) */}
+        {/* 5. Third-Party Services & Market Data */}
         <section className="space-y-3">
-          <h2 className="text-lg font-bold text-white">5. Third-Party Services & Market Data</h2>
+          <h2 className="text-lg font-bold text-white">5. Third-Party Services & Delayed Market Data</h2>
           <p>
-            Market data quotes and option chain feeds are aggregated from public sources and optional third-party broker APIs (such as Upstox API). PRO-TRADER is not affiliated with or endorsed by the National Stock Exchange of India (NSE) or Upstox. We do not guarantee uninterrupted market data availability or 100% real-time latency due to network conditions.
+            Market data quotes and option chain feeds are aggregated from public sources and optional third-party APIs. PRO-TRADER is not affiliated with or endorsed by the National Stock Exchange of India (NSE). We provide delayed and simulated market data. We do not guarantee real-time latency or uninterrupted data availability.
           </p>
         </section>
 

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: "%s | PRO-TRADER - NSE Options Paper Trading & Journal",
   },
   description:
-    "Practice Indian stock market options paper trading with zero risk. Features real-time NSE Nifty & Bank Nifty quotes, call/put strike simulator, automated trade journal, daily P&L calendar, and Upstox API integration.",
+    "Practice Indian stock market options paper trading with zero risk. Features delayed NSE Nifty & Bank Nifty quotes, call/put strike simulator, automated trade journal, and daily P&L analytics.",
   keywords: [
     "NSE paper trading",
     "Options paper trading India",
@@ -27,10 +27,10 @@ export const metadata: Metadata = {
     "Free stock trading simulator India",
     "NSE trade journal",
     "Options premium calculator",
-    "Upstox paper trading app",
+    "Educational paper trading app",
     "Derivatives paper trading",
     "Virtual trading India",
-    "Live PnL tracker",
+    "Simulated PnL tracker",
     "Indian stock market simulator",
     "Option strategy journal",
     "Call Put option simulator",
@@ -66,9 +66,9 @@ export const metadata: Metadata = {
     locale: "en_IN",
     url: SITE_URL,
     siteName: "PRO-TRADER",
-    title: "PRO-TRADER | Real-Time NSE Options Paper Trading App",
+    title: "PRO-TRADER | Educational NSE Options Paper Trading App",
     description:
-      "Practice Nifty & Bank Nifty options paper trading with live quotes, trade journal, and performance analytics. Zero risk virtual trading for Indian stock markets.",
+      "Practice Nifty & Bank Nifty options paper trading with delayed quotes, trade journal, and performance analytics. Zero risk educational virtual trading.",
     images: [
       {
         url: "/icon.svg",
@@ -82,7 +82,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "PRO-TRADER | NSE Options & Stock Paper Trading App",
     description:
-      "Master NSE options trading risk-free. Real-time Nifty 50 and Bank Nifty option chain simulation, automated P&L journal, and trading analytics.",
+      "Master NSE options trading risk-free. Educational Nifty 50 and Bank Nifty option chain simulation, automated P&L journal, and trading analytics.",
     images: ["/icon.svg"],
     creator: "@protrader_app",
   },
@@ -108,7 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       availability: "https://schema.org/InStock",
     },
     description:
-      "Real-time Indian Stock Market (NSE) options paper trading software with live market quotes, trade journal, and performance analytics.",
+      "Educational Indian Stock Market (NSE) options paper trading software with delayed market quotes, trade journal, and performance analytics.",
     aggregateRating: {
       "@type": "AggregateRating",
       ratingValue: "4.9",

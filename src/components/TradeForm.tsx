@@ -193,7 +193,7 @@ export default function TradeForm({ onCreated, selectedOption }: TradeFormProps)
     }
   }
 
-  // Real-Time Risk / Reward & Position Sizing Calculation
+  // Dynamic Risk / Reward & Position Sizing Calculation
   const qNum = parseFloat(quantity) || 0;
   const eNum = parseFloat(entryPrice) || 0;
   const slNum = parseFloat(stopLoss) || 0;

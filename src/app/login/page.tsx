@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Trader Login & Account Registration | PRO-TRADER",
   description:
-    "Sign in to your PRO-TRADER account or start your 7-day free trial to paper trade NSE Nifty 50, Bank Nifty, and stock options in real-time.",
+    "Sign in to your PRO-TRADER account or start your 7-day free trial to paper trade NSE Nifty 50, Bank Nifty, and stock options with virtual funds.",
   keywords: [
     "PRO-TRADER login",
     "NSE paper trading sign up",

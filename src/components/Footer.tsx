@@ -15,7 +15,7 @@ export default function Footer() {
               <span className="text-accent font-extrabold text-xl">PRO</span>-TRADER
             </Link>
             <p className="text-xs text-muted max-w-sm leading-relaxed">
-              NSE options paper trading, real-time quotes, strategy journal & performance analytics. Practice derivatives trading risk-free.
+              NSE options educational paper trading, strategy journal & performance analytics simulator. Practice derivatives trading risk-free with virtual funds.
             </p>
           </div>
 
@@ -42,9 +42,17 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Disclaimer Notice */}
-        <div className="rounded-xl border border-white/5 bg-slate-900/40 p-4 text-[11px] text-slate-400 leading-relaxed text-center">
-          <strong>Risk & Educational Disclaimer:</strong> PRO-TRADER is an educational paper-trading simulator for learning Indian stock market & options trading strategies. Virtual funds have no real cash value. PRO-TRADER does not guarantee profits, offer investment recommendations, or act as a SEBI registered entity.
+        {/* Mandatory Educational Disclaimer Notice */}
+        <div className="rounded-2xl border border-rose-500/30 bg-rose-950/20 p-5 text-xs text-rose-300 leading-relaxed space-y-2">
+          <p className="font-bold text-rose-400 text-sm flex items-center gap-2">
+            ⚠️ Educational & Paper Trading Disclaimer:
+          </p>
+          <p>
+            PRO-TRADER is a paper trading platform designed solely for educational purposes. We provide delayed market data, and no real-time trading is available. There are no investment-related activities or monetary benefits associated with this application. We do not offer investment advice or endorse any investment strategies.
+          </p>
+          <p className="text-[11px] text-rose-300/80">
+            If anyone contacts you claiming to provide investment services or advice under the PRO-TRADER name, please be aware that PRO-TRADER is not responsible for such activities and holds no liability for them. We urge you to report any such incidents immediately to our support team at <a href="mailto:support@pro-trader.in" className="underline font-bold text-rose-200 hover:text-white">support@pro-trader.in</a>.
+          </p>
         </div>
 
         <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-muted gap-4">

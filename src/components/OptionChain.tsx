@@ -2,6 +2,21 @@
 
 import { useEffect, useState } from "react";
 
+interface OptionChainRecord {
+  strikePrice: number;
+  CE?: {
+    lastPrice: number;
+    impliedVolatility: number;
+    openInterest: number;
+    totalTradedVolume: number;
+  };
+  PE?: {
+    lastPrice: number;
+    impliedVolatility: number;
+    openInterest: number;
+  };
+}
+
 interface OptionChainProps {
   onSelectOption: (option: { symbol: string; entryPrice: number; quantity: number }) => void;
 }
@@ -11,31 +26,36 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
   const [columnMode, setColumnMode] = useState<"full" | "essential">("full");
   const [niftySpot, setNiftySpot] = useState<number>(24366.0);
   const [bankniftySpot, setBankniftySpot] = useState<number>(57491.0);
+  const [chainRecords, setChainRecords] = useState<OptionChainRecord[]>([]);
+  const [isFallbackFeed, setIsFallbackFeed] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    async function fetchSpotPrices() {
+    async function fetchOptionChainData() {
       try {
-        const [niftyRes, bankRes] = await Promise.all([
-          fetch("/api/market/quote?symbol=NIFTY"),
-          fetch("/api/market/quote?symbol=BANKNIFTY"),
-        ]);
-        const niftyData = await niftyRes.json();
-        const bankData = await bankRes.json();
+        const res = await fetch(`/api/market/option-chain?symbol=${index}`);
+        const data = await res.json();
 
-        if (niftyData.lastPrice) setNiftySpot(niftyData.lastPrice);
-        if (bankData.lastPrice) setBankniftySpot(bankData.lastPrice);
+        if (data.underlyingValue) {
+          if (index === "NIFTY") setNiftySpot(data.underlyingValue);
+          else setBankniftySpot(data.underlyingValue);
+        }
+
+        if (data.records && data.records.length > 0) {
+          setChainRecords(data.records);
+          setIsFallbackFeed(Boolean(data.isFallback));
+        }
       } catch (err) {
-        console.error("Option chain spot price fetch error:", err);
+        console.error("Option chain fetch error:", err);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchSpotPrices();
-    const interval = setInterval(fetchSpotPrices, 15000);
+    fetchOptionChainData();
+    const interval = setInterval(fetchOptionChainData, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [index]);
 
   // Benchmark spot & lot size constants
   const spotPrice = index === "NIFTY" ? niftySpot : bankniftySpot;
@@ -43,13 +63,19 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
   const strikeInterval = index === "NIFTY" ? 50 : 100;
   const baseStrike = Math.round(spotPrice / strikeInterval) * strikeInterval;
 
-  // Generate 4 strike levels above and 4 below spot (9 total strikes)
-  const strikes: number[] = [];
-  for (let i = -4; i <= 4; i++) {
-    strikes.push(baseStrike + i * strikeInterval);
-  }
+  // Use fetched strikes if available, otherwise generate range
+  const displayStrikes: number[] = chainRecords.length > 0
+    ? chainRecords.map((r) => r.strikePrice)
+    : [-4, -3, -2, -1, 0, 1, 2, 3, 4].map((i) => baseStrike + i * strikeInterval);
 
   function getOptionPremium(strike: number, isCE: boolean) {
+    const matchedRecord = chainRecords.find((r) => r.strikePrice === strike);
+    const apiPrice = isCE ? matchedRecord?.CE?.lastPrice : matchedRecord?.PE?.lastPrice;
+
+    if (apiPrice && apiPrice > 0) {
+      return Number(apiPrice.toFixed(2));
+    }
+
     const diff = isCE ? spotPrice - strike : strike - spotPrice;
     const intrinsic = Math.max(0, diff);
     const timeValue = index === "NIFTY" ? 95.0 : 185.0;
@@ -58,9 +84,13 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
 
   // Black-Scholes & Option Greeks Calculator
   function getGreeks(strike: number, isCE: boolean) {
+    const matchedRecord = chainRecords.find((r) => r.strikePrice === strike);
+    const apiIV = isCE ? matchedRecord?.CE?.impliedVolatility : matchedRecord?.PE?.impliedVolatility;
+    const apiOI = isCE ? matchedRecord?.CE?.openInterest : matchedRecord?.PE?.openInterest;
+
     const diffRatio = (spotPrice - strike) / spotPrice;
     const baseIV = index === "NIFTY" ? 14.2 : 16.8;
-    const iv = Number((baseIV + Math.abs(diffRatio) * 12).toFixed(1));
+    const iv = apiIV && apiIV > 0 ? Number(apiIV.toFixed(1)) : Number((baseIV + Math.abs(diffRatio) * 12).toFixed(1));
 
     // Delta calculation
     let rawDelta = 0.5 + diffRatio * 3.5;
@@ -75,13 +105,12 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
     const baseTheta = index === "NIFTY" ? -14.5 : -24.8;
     const theta = Number((baseTheta * (1 - Math.abs(diffRatio) * 1.5)).toFixed(2));
 
-    // Volume & OI simulation
+    // OI
     const distanceFactor = Math.max(0.2, 1 - Math.abs(diffRatio) * 4);
     const baseVol = index === "NIFTY" ? 250000 : 180000;
-    const volume = Math.round(baseVol * distanceFactor + (strike % 300) * 15);
-    const oi = Math.round(volume * 2.8 + (strike % 500) * 45);
+    const oi = apiOI && apiOI > 0 ? apiOI : Math.round((baseVol * distanceFactor) * 2.8);
 
-    return { delta, theta, iv, volume, oi };
+    return { delta, theta, iv, oi };
   }
 
   return (
@@ -89,13 +118,13 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/10 pb-3.5">
         <div>
           <h2 className="font-extrabold text-base flex items-center gap-2 text-white">
-            <span>📈 Option Chain Matrix</span>
+            <span>📈 NSE Option Chain Matrix</span>
             <span className="text-[10px] bg-[#00E599]/10 text-[#00E599] border border-[#00E599]/30 px-2.5 py-0.5 rounded-full font-bold">
-              Obsidian Glass Feed
+              {isFallbackFeed ? "NSE Market Simulator Feed" : "NSE Educational Data Feed"}
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Real-time Call & Put Premiums, Delta ($\Delta$), Theta ($\Theta$), IV, and OI with ITM row shading.
+            Educational Call & Put Premiums, Delta ($\Delta$), Theta ($\Theta$), IV, and Open Interest (OI) with ITM shading.
           </p>
         </div>
 
@@ -189,7 +218,7 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5 font-mono">
-            {strikes.map((strike) => {
+            {displayStrikes.map((strike) => {
               const cePrice = getOptionPremium(strike, true);
               const pePrice = getOptionPremium(strike, false);
               const ceGreeks = getGreeks(strike, true);

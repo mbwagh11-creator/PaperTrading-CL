@@ -180,7 +180,7 @@ export default function OpenTrades({
 
   return (
     <div className="space-y-4">
-      {/* Real-time Status & Emergency Action Header */}
+      {/* Open Trades Status & Emergency Action Header */}
       <div className="bg-[#12151E] border border-white/10 rounded-2xl p-4 space-y-3 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">

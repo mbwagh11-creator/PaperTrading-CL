@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Pricing & 7-Day Free Trial | ₹149/mo PRO-TRADER Subscription",
   description:
-    "Try PRO-TRADER free for 7 days. Full access to NSE stock and options paper trading, real-time Nifty quotes, option chain simulator, trade journal, and performance analytics for ₹149/month.",
+    "Try PRO-TRADER free for 7 days. Full access to NSE stock and options paper trading, educational Nifty quotes, option chain simulator, trade journal, and performance analytics for ₹149/month.",
   keywords: [
     "NSE paper trading pricing",
     "Options trading simulator free trial",
