@@ -95,14 +95,13 @@ export default function JournalClient({ initialTrades }: JournalClientProps) {
 
   // Calculate trade P&L for each item
   function getTradePnl(t: TradeItem): number {
-    if (t.status === "CLOSED" && typeof t.pnl === "number") {
-      // If exitPrice equals entryPrice, check if exitPrice was set or compute
-      if (t.pnl !== 0 || !t.exitPrice) return t.pnl;
-      const ref = t.exitPrice || t.entryPrice;
+    if (t.status === "CLOSED") {
+      if (typeof t.pnl === "number" && t.pnl !== 0) return t.pnl;
+      const ref = t.exitPrice ?? t.currentPrice ?? t.entryPrice;
       const diff = t.side === "BUY" ? ref - t.entryPrice : t.entryPrice - ref;
       return Number((diff * t.quantity).toFixed(2));
     }
-    const ref = t.currentPrice || t.entryPrice;
+    const ref = t.currentPrice ?? t.entryPrice;
     const diff = t.side === "BUY" ? ref - t.entryPrice : t.entryPrice - ref;
     return Number((diff * t.quantity).toFixed(2));
   }
