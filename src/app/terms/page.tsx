@@ -51,7 +51,7 @@ export default function TermsPage() {
             <li>No real money or actual capital is traded, deposited, or risked on PRO-TRADER.</li>
             <li>Virtual P&L, account balances, and portfolio returns have zero real cash value and cannot be withdrawn or exchanged for legal tender.</li>
             <li>PRO-TRADER is <strong>NOT</strong> a SEBI-registered stockbroker, investment advisor, or portfolio manager. Nothing on this platform constitutes financial, investment, legal, or tax advice.</li>
-            <li>If anyone contacts you claiming to provide investment services or advice under the PRO-TRADER name, please be aware that PRO-TRADER is not responsible for such activities and holds no liability for them. Report such incidents immediately to support@pro-trader.in.</li>
+            <li>If anyone contacts you claiming to provide investment services or advice under the PRO-TRADER name, please be aware that PRO-TRADER is not responsible for such activities and holds no liability for them. Report such incidents immediately to our support team.</li>
           </ul>
         </section>
 

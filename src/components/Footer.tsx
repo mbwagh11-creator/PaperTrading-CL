@@ -51,7 +51,7 @@ export default function Footer() {
             PRO-TRADER is a paper trading platform designed solely for educational purposes. We provide delayed market data, and no real-time trading is available. There are no investment-related activities or monetary benefits associated with this application. We do not offer investment advice or endorse any investment strategies.
           </p>
           <p className="text-[11px] text-rose-300/80">
-            If anyone contacts you claiming to provide investment services or advice under the PRO-TRADER name, please be aware that PRO-TRADER is not responsible for such activities and holds no liability for them. We urge you to report any such incidents immediately to our support team at <a href="mailto:support@pro-trader.in" className="underline font-bold text-rose-200 hover:text-white">support@pro-trader.in</a>.
+            If anyone contacts you claiming to provide investment services or advice under the PRO-TRADER name, please be aware that PRO-TRADER is not responsible for such activities and holds no liability for them. We urge you to report any such incidents immediately to our official support team.
           </p>
         </div>
 

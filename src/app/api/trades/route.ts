@@ -52,17 +52,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Guard 1: Reject trades if market is closed
-  if (!isNseMarketOpenNow()) {
-    return NextResponse.json(
-      {
-        error:
-          "Order Rejected: NSE Market is currently CLOSED. Trading is strictly permitted only during live market hours (Mon-Fri 9:15 AM - 3:30 PM IST).",
-        marketClosed: true,
-      },
-      { status: 400 }
-    );
-  }
+  // Educational simulator allows paper trade placement anytime using latest reference quotes.
 
   // Guard 2: Reject trades against expired trial
   const sub = calculateSubscriptionStatus(user);

@@ -38,12 +38,19 @@ function fmtMoney(value: number) {
 
 function getPeriodKey(date: Date | null) {
   if (!date) return "";
-  return new Date(date).toISOString().slice(0, 7);
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
 }
 
 function getDayKey(date: Date | null) {
   if (!date) return "";
-  return new Date(date).toISOString().slice(0, 10);
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export default async function JournalPage() {
@@ -101,7 +108,7 @@ export default async function JournalPage() {
     const dayNumber = index - firstDayOffset + 1;
     const date = new Date(now.getFullYear(), now.getMonth(), dayNumber);
     const isCurrentMonth = date.getMonth() === now.getMonth();
-    const key = date.toISOString().slice(0, 10);
+    const key = getDayKey(date);
     const pnl = dailyPnl.get(key) ?? 0;
 
     return { isCurrentMonth, date, dayNumber: date.getDate(), pnl, key };

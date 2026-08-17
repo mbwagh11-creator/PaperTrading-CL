@@ -73,13 +73,14 @@ export default function OptionChain({ onSelectOption }: OptionChainProps) {
     const apiPrice = isCE ? matchedRecord?.CE?.lastPrice : matchedRecord?.PE?.lastPrice;
 
     if (apiPrice && apiPrice > 0) {
-      return Number(apiPrice.toFixed(2));
+      return Number(apiPrice.toFixed(1));
     }
 
     const diff = isCE ? spotPrice - strike : strike - spotPrice;
     const intrinsic = Math.max(0, diff);
-    const timeValue = index === "NIFTY" ? 95.0 : 185.0;
-    return Number(Math.max(15, intrinsic + timeValue).toFixed(2));
+    const distanceFactor = Math.abs(spotPrice - strike) / spotPrice;
+    const timeValue = (index === "NIFTY" ? 95.0 : 185.0) * Math.max(0.08, 1 - distanceFactor * 4.5);
+    return Number(Math.max(15, intrinsic + timeValue).toFixed(1));
   }
 
   // Black-Scholes & Option Greeks Calculator
