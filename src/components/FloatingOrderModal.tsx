@@ -289,6 +289,10 @@ export default function FloatingOrderModal({
                 ₹{requiredMargin.toLocaleString("en-IN")}
               </span>
             </div>
+            <div className="flex justify-between items-center text-[11px] text-slate-400 border-b border-white/5 pb-1">
+              <span>Order Brokerage Charges:</span>
+              <span className="text-rose-400 font-bold font-mono">₹50.00 / order leg</span>
+            </div>
 
             {hasRiskCalc && (
               <div className="grid grid-cols-3 gap-1 text-[11px] pt-0.5">

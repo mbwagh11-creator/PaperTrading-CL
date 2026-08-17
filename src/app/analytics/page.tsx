@@ -61,27 +61,26 @@ export default async function AnalyticsPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Stat label="Total Closed Trades" value={String(a.totalTrades)} />
+            <Stat label="Gross P&L" value={`₹${a.grossPnl.toFixed(2)}`} tone={a.grossPnl >= 0 ? "up" : "down"} />
+            <Stat label="Total Order Charges" value={`₹${a.totalCharges.toFixed(2)}`} tone="down" />
+            <Stat label="Net Realized P&L" value={`₹${a.netPnl.toFixed(2)}`} tone={a.netPnl >= 0 ? "up" : "down"} />
             <Stat label="Win Rate" value={`${a.winRate}%`} tone={a.winRate >= 50 ? "up" : "down"} />
-            <Stat label="Total Realized P&L" value={`₹${a.totalPnl.toFixed(2)}`} tone={a.totalPnl >= 0 ? "up" : "down"} />
-            <Stat
-              label="Profit Factor"
-              value={a.profitFactor === null ? "—" : a.profitFactor.toFixed(2)}
-            />
           </div>
 
           <div className="grid grid-cols-3 md:grid-cols-5 gap-4">
             <Stat label="Wins" value={String(a.wins)} tone="up" />
             <Stat label="Losses" value={String(a.losses)} tone="down" />
-            <Stat label="Breakeven (0 P&L)" value={String(a.breakeven)} />
+            <Stat label="Breakeven" value={String(a.breakeven)} />
             <Stat label="Avg Win" value={`₹${a.avgWin.toFixed(2)}`} tone="up" />
             <Stat label="Avg Loss" value={`₹${a.avgLoss.toFixed(2)}`} tone="down" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Stat label="Best Trade" value={`₹${a.bestTrade.toFixed(2)}`} tone="up" />
-            <Stat label="Worst Trade" value={`₹${a.worstTrade.toFixed(2)}`} tone="down" />
+          <div className="grid grid-cols-3 gap-4">
+            <Stat label="Profit Factor" value={a.profitFactor === null ? "—" : a.profitFactor.toFixed(2)} />
+            <Stat label="Best Net Trade" value={`₹${a.bestTrade.toFixed(2)}`} tone="up" />
+            <Stat label="Worst Net Trade" value={`₹${a.worstTrade.toFixed(2)}`} tone="down" />
           </div>
         </>
       )}

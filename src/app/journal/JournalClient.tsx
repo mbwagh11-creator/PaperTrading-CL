@@ -111,8 +111,10 @@ export default function JournalClient({ initialTrades }: JournalClientProps) {
   const closedTradesList = trades.filter((t) => t.status === "CLOSED");
 
   // Summary Metrics
-  const totalClosedPnl = closedTradesList.reduce((sum, t) => sum + getTradePnl(t), 0);
-  const openUnrealizedPnl = openTradesList.reduce((sum, t) => sum + getTradePnl(t), 0);
+  const grossClosedPnl = closedTradesList.reduce((sum, t) => sum + getTradePnl(t), 0);
+  const totalChargesPaid = closedTradesList.length * 100 + openTradesList.length * 50; // ₹50 per order leg
+  const netClosedPnl = grossClosedPnl - (closedTradesList.length * 100);
+  const openUnrealizedPnl = openTradesList.reduce((sum, t) => sum + getTradePnl(t) - 50, 0);
 
   // Group daily/monthly P&L
   const dailyPnl = new Map<string, number>();
@@ -123,11 +125,11 @@ export default function JournalClient({ initialTrades }: JournalClientProps) {
     const dKey = getDayKey(t.closedAt || t.createdAt);
     const mKey = getPeriodKey(t.closedAt || t.createdAt);
     const yKey = String(new Date(t.closedAt || t.createdAt).getFullYear());
-    const p = getTradePnl(t);
+    const netP = getTradePnl(t) - 100; // Net P&L after ₹100 charges (2 legs)
 
-    dailyPnl.set(dKey, (dailyPnl.get(dKey) || 0) + p);
-    monthlyPnl.set(mKey, (monthlyPnl.get(mKey) || 0) + p);
-    yearlyPnl.set(yKey, (yearlyPnl.get(yKey) || 0) + p);
+    dailyPnl.set(dKey, (dailyPnl.get(dKey) || 0) + netP);
+    monthlyPnl.set(mKey, (monthlyPnl.get(mKey) || 0) + netP);
+    yearlyPnl.set(yKey, (yearlyPnl.get(yKey) || 0) + netP);
   });
 
   const sortedDaily = Array.from(dailyPnl.entries()).sort((a, b) => b[0].localeCompare(a[0]));
@@ -135,7 +137,7 @@ export default function JournalClient({ initialTrades }: JournalClientProps) {
   const sortedYearly = Array.from(yearlyPnl.entries()).sort((a, b) => b[0].localeCompare(a[0]));
 
   const bestDay = sortedDaily[0]?.[1] || 0;
-  const avgDaily = sortedDaily.length ? totalClosedPnl / sortedDaily.length : 0;
+  const avgDaily = sortedDaily.length ? netClosedPnl / sortedDaily.length : 0;
 
   // Filtered trades for table display
   const filteredTrades = trades.filter((t) => {
@@ -172,32 +174,38 @@ export default function JournalClient({ initialTrades }: JournalClientProps) {
       <div>
         <h1 className="text-3xl font-extrabold text-white">Trade Journal & History</h1>
         <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-          Every paper trade you place is automatically recorded here with entry/exit prices, P&L analytics, and daily calendar heatmaps.
+          Every paper trade you place is automatically recorded here with entry/exit prices, order charges (₹50/order leg), P&L analytics, and daily calendar heatmaps.
         </p>
       </div>
 
       {/* Top Stat Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="rounded-2xl border border-white/10 bg-[#12151E] p-4 shadow-lg">
           <p className="text-xs text-slate-400 font-semibold">Total Trades</p>
           <p className="text-2xl font-black text-white mt-1 font-mono">{trades.length}</p>
           <p className="text-[10px] text-slate-500 mt-0.5">{openTradesList.length} Open • {closedTradesList.length} Closed</p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-[#12151E] p-4 shadow-lg">
-          <p className="text-xs text-slate-400 font-semibold">Net Closed P&L</p>
-          <p className={`text-2xl font-black mt-1 font-mono ${totalClosedPnl >= 0 ? "text-[#00E599]" : "text-[#FF3B5C]"}`}>
-            {fmtMoney(totalClosedPnl)}
-          </p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Realized from {closedTradesList.length} trades</p>
+        <div className="rounded-2xl border border-rose-500/30 bg-[#12151E] p-4 shadow-lg">
+          <p className="text-xs text-rose-400 font-semibold">Total Order Charges</p>
+          <p className="text-2xl font-black text-rose-400 mt-1 font-mono">₹{totalChargesPaid.toFixed(2)}</p>
+          <p className="text-[10px] text-rose-300/70 mt-0.5">₹50 per order execution leg</p>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-[#12151E] p-4 shadow-lg">
-          <p className="text-xs text-slate-400 font-semibold">Open Positions P&L</p>
-          <p className={`text-2xl font-black mt-1 font-mono ${openUnrealizedPnl >= 0 ? "text-[#00E599]" : "text-[#FF3B5C]"}`}>
-            {fmtMoney(openUnrealizedPnl)}
+          <p className="text-xs text-slate-400 font-semibold">Gross Closed P&L</p>
+          <p className={`text-2xl font-black mt-1 font-mono ${grossClosedPnl >= 0 ? "text-[#00E599]" : "text-[#FF3B5C]"}`}>
+            {fmtMoney(grossClosedPnl)}
           </p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Unrealized active P&L</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">Before ₹50/order charges</p>
+        </div>
+
+        <div className="rounded-2xl border border-emerald-500/30 bg-[#12151E] p-4 shadow-lg">
+          <p className="text-xs text-emerald-400 font-semibold">Net Closed P&L</p>
+          <p className={`text-2xl font-black mt-1 font-mono ${netClosedPnl >= 0 ? "text-[#00E599]" : "text-[#FF3B5C]"}`}>
+            {fmtMoney(netClosedPnl)}
+          </p>
+          <p className="text-[10px] text-emerald-300/70 mt-0.5">After ₹50/order charges</p>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-[#12151E] p-4 shadow-lg">
@@ -205,7 +213,7 @@ export default function JournalClient({ initialTrades }: JournalClientProps) {
           <p className={`text-2xl font-black mt-1 font-mono ${bestDay >= 0 ? "text-[#00E599]" : "text-[#FF3B5C]"}`}>
             {fmtMoney(bestDay)}
           </p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Avg: {fmtMoney(avgDaily)}/day</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">Avg Net: {fmtMoney(avgDaily)}/day</p>
         </div>
       </div>
 
@@ -279,9 +287,9 @@ export default function JournalClient({ initialTrades }: JournalClientProps) {
                 <th className="p-3">Qty</th>
                 <th className="p-3">Entry Price</th>
                 <th className="p-3">Current / Exit</th>
-                <th className="p-3">SL</th>
-                <th className="p-3">Target</th>
-                <th className="p-3">P&L</th>
+                <th className="p-3">Charges</th>
+                <th className="p-3">Gross P&L</th>
+                <th className="p-3">Net P&L</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Opened</th>
                 <th className="p-3">Action</th>
@@ -303,8 +311,10 @@ export default function JournalClient({ initialTrades }: JournalClientProps) {
                 </tr>
               ) : (
                 filteredTrades.map((t) => {
-                  const pnl = getTradePnl(t);
+                  const grossPnl = getTradePnl(t);
                   const isClosed = t.status === "CLOSED";
+                  const charges = isClosed ? 100 : 50; // ₹50 entry + ₹50 exit
+                  const netPnl = grossPnl - charges;
                   const refPrice = isClosed ? t.exitPrice || t.entryPrice : t.currentPrice || t.entryPrice;
 
                   return (
@@ -322,10 +332,12 @@ export default function JournalClient({ initialTrades }: JournalClientProps) {
                       <td className="p-3 font-semibold text-slate-200">{t.quantity}</td>
                       <td className="p-3 font-semibold text-slate-200">₹{t.entryPrice}</td>
                       <td className="p-3 font-semibold text-white">₹{refPrice}</td>
-                      <td className="p-3 text-slate-400">{t.stopLoss ? `₹${t.stopLoss}` : "—"}</td>
-                      <td className="p-3 text-slate-400">{t.target ? `₹${t.target}` : "—"}</td>
-                      <td className={`p-3 font-extrabold text-sm ${pnl >= 0 ? "text-[#00E599]" : "text-[#FF3B5C]"}`}>
-                        {fmtMoney(pnl)}
+                      <td className="p-3 text-rose-400 font-semibold">₹{charges}</td>
+                      <td className={`p-3 font-bold ${grossPnl >= 0 ? "text-[#00E599]" : "text-[#FF3B5C]"}`}>
+                        {fmtMoney(grossPnl)}
+                      </td>
+                      <td className={`p-3 font-extrabold text-sm ${netPnl >= 0 ? "text-[#00E599]" : "text-[#FF3B5C]"}`}>
+                        {fmtMoney(netPnl)}
                       </td>
                       <td className="p-3">
                         <span

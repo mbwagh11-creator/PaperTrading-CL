@@ -22,29 +22,44 @@ export function livePnl(trade: Trade): number {
   return calculatePnl(trade.side as "BUY" | "SELL", trade.entryPrice, ref, trade.quantity);
 }
 
+export const CHARGES_PER_ORDER = 50.0; // ₹50 flat charge per order execution leg
+
 export interface AnalyticsSummary {
   totalTrades: number;
   wins: number;
   losses: number;
   breakeven: number;
   winRate: number; // percentage
-  totalPnl: number;
+  grossPnl: number;
+  totalCharges: number;
+  netPnl: number;
+  totalPnl: number; // alias for netPnl
   avgWin: number;
   avgLoss: number;
-  profitFactor: number | null; // grossProfit / grossLoss
+  profitFactor: number | null;
   bestTrade: number;
   worstTrade: number;
 }
 
+/** Get order charges for a trade based on status (1 leg = ₹50 for OPEN, 2 legs = ₹100 for CLOSED). */
+export function getTradeCharges(status: string): number {
+  return status === "CLOSED" ? CHARGES_PER_ORDER * 2 : CHARGES_PER_ORDER;
+}
+
 /** Performance analytics computed strictly from CLOSED trades. */
 export function computeAnalytics(closedTrades: Trade[]): AnalyticsSummary {
-  const pnls = closedTrades.map((t) => t.pnl ?? 0);
+  const totalCharges = closedTrades.length * (CHARGES_PER_ORDER * 2); // ₹100 per closed trade (2 legs)
 
-  const wins = pnls.filter((p) => p > 0);
-  const losses = pnls.filter((p) => p < 0);
-  const breakeven = pnls.filter((p) => p === 0);
+  const grossPnls = closedTrades.map((t) => t.pnl ?? 0);
+  const netPnls = closedTrades.map((t) => (t.pnl ?? 0) - CHARGES_PER_ORDER * 2);
 
-  const totalPnl = Number(pnls.reduce((a, b) => a + b, 0).toFixed(2));
+  const wins = netPnls.filter((p) => p > 0);
+  const losses = netPnls.filter((p) => p < 0);
+  const breakeven = netPnls.filter((p) => p === 0);
+
+  const grossPnl = Number(grossPnls.reduce((a, b) => a + b, 0).toFixed(2));
+  const netPnl = Number((grossPnl - totalCharges).toFixed(2));
+
   const grossProfit = wins.reduce((a, b) => a + b, 0);
   const grossLoss = Math.abs(losses.reduce((a, b) => a + b, 0));
 
@@ -57,7 +72,7 @@ export function computeAnalytics(closedTrades: Trade[]): AnalyticsSummary {
   } else if (grossProfit > 0) {
     profitFactor = 99.9;
   } else if (closedTrades.length > 0) {
-    profitFactor = 1.0; // neutral 1.00 ratio for 0 P&L breakeven trades
+    profitFactor = 1.0;
   }
 
   return {
@@ -66,11 +81,14 @@ export function computeAnalytics(closedTrades: Trade[]): AnalyticsSummary {
     losses: losses.length,
     breakeven: breakeven.length,
     winRate,
-    totalPnl,
+    grossPnl,
+    totalCharges,
+    netPnl,
+    totalPnl: netPnl,
     avgWin: wins.length ? Number((grossProfit / wins.length).toFixed(2)) : 0,
     avgLoss: losses.length ? Number((grossLoss / losses.length).toFixed(2)) : 0,
     profitFactor,
-    bestTrade: pnls.length ? Math.max(...pnls) : 0,
-    worstTrade: pnls.length ? Math.min(...pnls) : 0,
+    bestTrade: netPnls.length ? Math.max(...netPnls) : 0,
+    worstTrade: netPnls.length ? Math.min(...netPnls) : 0,
   };
 }
