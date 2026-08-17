@@ -128,15 +128,34 @@ export async function GET(req: NextRequest) {
 
   if (isOption) {
     const strikeMatch = cleanSymbol.match(/(\d{4,5})/);
-    const defaultStrike = underlyingSymbol === "BANKNIFTY" ? 57500 : 24500;
+    const defaultStrike = underlyingSymbol === "BANKNIFTY" ? 57600 : 24350;
     const strike = strikeMatch ? parseFloat(strikeMatch[1]) : defaultStrike;
     const isCE = cleanSymbol.includes("CE") || cleanSymbol.includes("CALL");
-    const diff = isCE ? spotPrice - strike : strike - spotPrice;
-    const intrinsic = Math.max(0, diff);
-    const baseTimeValue = underlyingSymbol === "BANKNIFTY" ? 185 : 90;
 
-    // Correct option premium calculation (Intrinsic + Time Value)
-    finalPrice = Number(Math.max(15, intrinsic + baseTimeValue).toFixed(2));
+    const isBank = underlyingSymbol === "BANKNIFTY";
+    const futuresOffset = isBank ? 200 : 25;
+    const baseAtmTimeVal = isBank ? 312.5 : 120.0;
+    const decayRate = isBank ? 0.0012 : 0.0025;
+
+    const dist = Math.abs(strike - spotPrice);
+    const otmExtrinsic = baseAtmTimeVal * Math.exp(-decayRate * dist);
+
+    let ltp = 0;
+    if (isCE) {
+      if (strike <= spotPrice) {
+        ltp = (spotPrice - strike) + otmExtrinsic + futuresOffset * Math.max(0.2, 1 - dist / 2000);
+      } else {
+        ltp = baseAtmTimeVal * Math.exp(-decayRate * (strike - spotPrice)) * 1.65;
+      }
+    } else {
+      if (strike >= spotPrice) {
+        ltp = (strike - spotPrice) + otmExtrinsic * 0.85;
+      } else {
+        ltp = otmExtrinsic;
+      }
+    }
+
+    finalPrice = Number(Math.max(15, ltp).toFixed(1));
     change = Number((finalPrice * 0.005).toFixed(2));
     changePercent = 0.5;
     high = Number((finalPrice * 1.02).toFixed(2));
