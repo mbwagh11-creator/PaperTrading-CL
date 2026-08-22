@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 4 characters long." }, { status: 400 });
     }
 
-    const isCreator = email === "mbwagh11@gmail.com";
+    const isCreator = Boolean(process.env.ADMIN_EMAIL && email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase());
 
     // SECURITY CHECK: Require OTP verification unless creator master access
     if (!isOtpVerified && !isCreator) {
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       user = await prisma.user.create({
         data: {
-          name: isCreator ? "Manoj (Owner)" : "Trader",
+          name: isCreator ? "Owner" : "Trader",
           email,
           passwordHash,
           passwordSalt: salt,

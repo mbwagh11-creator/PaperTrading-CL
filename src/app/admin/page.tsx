@@ -131,7 +131,7 @@ export default function AdminDashboardPage() {
           <div className="rounded-2xl border border-rose-500/30 bg-rose-950/40 p-6 text-center space-y-3">
             <p className="text-rose-300 font-semibold">{error}</p>
             <p className="text-xs text-slate-400">
-              Please log in as Creator (<strong className="text-white">mbwagh11@gmail.com</strong>) to access owner analytics.
+              Please log in as Creator (<strong className="text-white">Admin / Owner</strong>) to access owner analytics.
             </p>
             <Link
               href="/login"
@@ -201,7 +201,7 @@ export default function AdminDashboardPage() {
                           <td className="py-3 px-3">
                             <span
                               className={`inline-block px-2.5 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider ${
-                                u.subscriptionStatus === "LIFETIME" || u.email === "mbwagh11@gmail.com"
+                                u.subscriptionStatus === "LIFETIME" || (Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAIL && u.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL.toLowerCase()))
                                   ? "bg-purple-400/20 text-purple-300 border border-purple-400/30"
                                   : u.subscriptionStatus === "ACTIVE"
                                   ? "bg-emerald-400/20 text-emerald-300 border border-emerald-400/30"
@@ -210,7 +210,7 @@ export default function AdminDashboardPage() {
                                   : "bg-rose-400/20 text-rose-300 border border-rose-400/30"
                               }`}
                             >
-                              {u.email === "mbwagh11@gmail.com"
+                              {Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAIL && u.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL.toLowerCase())
                                 ? "👑 OWNER VIP"
                                 : u.subscriptionStatus === "LIFETIME"
                                 ? "👑 LIFETIME PRO"

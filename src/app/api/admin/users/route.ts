@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     const userEmail = (currentUser?.email || "").toLowerCase().trim();
-    const isOwner = userEmail === "mbwagh11@gmail.com" || currentUser?.subscriptionStatus === "LIFETIME";
+    const isOwner = (Boolean(process.env.ADMIN_EMAIL && userEmail === process.env.ADMIN_EMAIL.toLowerCase())) || currentUser?.subscriptionStatus === "LIFETIME";
 
     if (!currentUser || !isOwner) {
       return NextResponse.json({ error: "Unauthorized access. Owner admin privileges required." }, { status: 403 });

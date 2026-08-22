@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    const isCreator = email === "mbwagh11@gmail.com";
+    const isCreator = Boolean(process.env.ADMIN_EMAIL && email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase());
 
     let user = await prisma.user.findUnique({ where: { email } }).catch(() => null);
 
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
       user = await prisma.user.create({
         data: {
-          name: isCreator ? "Manoj (Owner)" : "Trader",
+          name: isCreator ? "Owner" : "Trader",
           email,
           passwordHash,
           passwordSalt: salt,

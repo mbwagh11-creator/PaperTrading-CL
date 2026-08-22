@@ -9,8 +9,8 @@ export async function GET(req: NextRequest) {
     const currentUser = await getCurrentUser();
     const userEmail = (currentUser?.email || "").toLowerCase().trim();
 
-    // Restrict Admin stats to owner (mbwagh11@gmail.com) or logged in creator
-    const isOwner = userEmail === "mbwagh11@gmail.com" || currentUser?.subscriptionStatus === "LIFETIME";
+    // Restrict Admin stats to owner or logged in creator
+    const isOwner = (Boolean(process.env.ADMIN_EMAIL && userEmail === process.env.ADMIN_EMAIL.toLowerCase())) || currentUser?.subscriptionStatus === "LIFETIME";
 
     if (!currentUser || !isOwner) {
       return NextResponse.json(

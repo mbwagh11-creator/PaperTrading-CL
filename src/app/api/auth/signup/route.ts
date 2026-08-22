@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     const salt = crypto.randomBytes(16).toString("hex");
     const passwordHash = hashPassword(password, salt);
 
-    const isCreator = email === "mbwagh11@gmail.com";
+    const isCreator = Boolean(process.env.ADMIN_EMAIL && email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase());
     const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const lifetimeEndsAt = new Date("2099-12-31");
 

@@ -53,7 +53,7 @@ export async function getCurrentUser() {
       }
       if (!user && jwtPayload.email) {
         // Self-heal user record in current serverless container DB
-        const isCreator = jwtPayload.email === "mbwagh11@gmail.com";
+        const isCreator = Boolean(process.env.ADMIN_EMAIL && jwtPayload.email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase());
         user = await prisma.user.create({
           data: {
             id: jwtPayload.userId,

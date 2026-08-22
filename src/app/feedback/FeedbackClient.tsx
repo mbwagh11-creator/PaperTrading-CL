@@ -41,7 +41,7 @@ export default function FeedbackClient() {
           if (subData.user) {
             setName(subData.user.name || "");
             setEmail(subData.user.email || "");
-            if (subData.user.email === "mbwagh11@gmail.com" || subData.user.isAdmin) {
+            if ((process.env.NEXT_PUBLIC_ADMIN_EMAIL && subData.user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) || subData.user.isAdmin) {
               setIsAdmin(true);
             }
           }
@@ -214,7 +214,7 @@ export default function FeedbackClient() {
                 <label className="text-xs font-semibold text-slate-300 block mb-1">Your Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. Manoj Sharma"
+                  placeholder="e.g. Alex Sharma"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className={inputClass}
@@ -224,7 +224,7 @@ export default function FeedbackClient() {
                 <label className="text-xs font-semibold text-slate-300 block mb-1">Email Address</label>
                 <input
                   type="email"
-                  placeholder="e.g. manoj@example.com"
+                  placeholder="e.g. example@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className={inputClass}

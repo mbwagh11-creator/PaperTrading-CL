@@ -104,7 +104,7 @@ export default function Navbar() {
             Feedback
           </Link>
 
-          {(user?.email === "mbwagh11@gmail.com" || sub?.status === "LIFETIME") && (
+          {(Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAIL && user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL.toLowerCase()) || sub?.status === "LIFETIME") && (
             <Link
               href="/admin"
               className="rounded-full px-3 py-1.5 bg-amber-400/15 text-amber-300 border border-amber-400/30 font-bold hover:bg-amber-400/25 transition-all"
@@ -223,7 +223,7 @@ export default function Navbar() {
             >
               Feedback
             </Link>
-            {(user?.email === "mbwagh11@gmail.com" || sub?.status === "LIFETIME") && (
+            {(Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAIL && user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL.toLowerCase()) || sub?.status === "LIFETIME") && (
               <Link
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}

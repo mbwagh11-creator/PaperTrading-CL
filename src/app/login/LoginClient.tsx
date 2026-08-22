@@ -85,7 +85,7 @@ export default function LoginClient() {
         return;
       }
 
-      if (mode === "reset" && !otpVerified && email !== "mbwagh11@gmail.com") {
+      if (mode === "reset" && !otpVerified && (!process.env.NEXT_PUBLIC_ADMIN_EMAIL || email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL)) {
         throw new Error("Security Requirement: You must verify your 6-digit OTP code before setting a new password.");
       }
 
@@ -160,7 +160,7 @@ export default function LoginClient() {
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Type Your Name (e.g. Manoj)"
+            placeholder="Type Your Name (e.g. Alex)"
             className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-white outline-none focus:border-emerald-400"
             required
           />
@@ -182,7 +182,7 @@ export default function LoginClient() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
-              placeholder="Email Address (e.g. mbwagh11@gmail.com)"
+              placeholder="Email Address (e.g. example@email.com)"
               className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-white outline-none focus:border-emerald-400"
               required
             />

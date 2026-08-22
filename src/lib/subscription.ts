@@ -8,7 +8,7 @@ export interface UserSubscriptionInfo {
   price: string;
 }
 
-const ADMIN_EMAILS = ["mbwagh11@gmail.com"];
+const ADMIN_EMAILS = [process.env.ADMIN_EMAIL, process.env.NEXT_PUBLIC_ADMIN_EMAIL].filter(Boolean).map(e => e!.toLowerCase());
 
 export function calculateSubscriptionStatus(user: {
   email?: string | null;
