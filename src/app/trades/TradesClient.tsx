@@ -5,6 +5,7 @@ import TradeForm from "@/components/TradeForm";
 import OpenTrades from "@/components/OpenTrades";
 import OptionChain from "@/components/OptionChain";
 import FloatingOrderModal from "@/components/FloatingOrderModal";
+import CapitalSummary, { TradeSummaryItem } from "@/components/CapitalSummary";
 
 interface Trade {
   id: string;
@@ -14,8 +15,11 @@ interface Trade {
   quantity: number;
   entryPrice: number;
   currentPrice: number | null;
+  exitPrice: number | null;
   stopLoss: number | null;
   target: number | null;
+  pnl: number | null;
+  status: string;
 }
 
 export default function TradesClient() {
@@ -31,7 +35,7 @@ export default function TradesClient() {
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
-    const res = await fetch("/api/trades?status=OPEN", { cache: "no-store" });
+    const res = await fetch("/api/trades", { cache: "no-store" });
     const data = await res.json();
 
     if (!res.ok || !Array.isArray(data)) {
@@ -139,6 +143,9 @@ export default function TradesClient() {
         </div>
       )}
 
+      {/* Capital Summary & Portfolio Reset Card */}
+      <CapitalSummary allTrades={trades} onReset={refreshSilent} />
+
       {/* Real NSE Market Status Banner */}
       <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-4 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
         <div className="flex items-center gap-3">
@@ -174,7 +181,10 @@ export default function TradesClient() {
           {loading ? (
             <p className="text-muted text-sm">Loading positions...</p>
           ) : (
-            <OpenTrades trades={trades} onChanged={refreshSilent} />
+            <OpenTrades
+              trades={trades.filter((t) => t.status === "OPEN")}
+              onChanged={refreshSilent}
+            />
           )}
         </div>
       </div>

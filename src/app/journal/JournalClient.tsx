@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import CapitalSummary from "@/components/CapitalSummary";
 
 interface TradeItem {
   id: string;
@@ -176,6 +177,9 @@ export default function JournalClient({ initialTrades }: JournalClientProps) {
           Every paper trade you place is automatically recorded here with entry/exit prices, order charges (₹50/order leg), P&L analytics, and daily calendar heatmaps.
         </p>
       </div>
+
+      {/* Virtual Portfolio Capital Summary Card */}
+      <CapitalSummary allTrades={trades} onReset={refreshTrades} />
 
       {/* Top Stat Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
