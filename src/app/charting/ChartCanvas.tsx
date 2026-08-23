@@ -89,9 +89,17 @@ export default function ChartCanvas({
   // Viewport zoom & scroll state
   const [startIndex, setStartIndex] = useState<number>(0);
   const [barsToShow, setBarsToShow] = useState<number>(80);
+  const [pricePaddingPercent, setPricePaddingPercent] = useState<number>(0.05); // Vertical price scale padding ratio
+
+  // Dragging & scaling states
   const [isPanning, setIsPanning] = useState(false);
+  const [isScalingPrice, setIsScalingPrice] = useState(false);
+  const [isScalingTime, setIsScalingTime] = useState(false);
   const [panStartX, setPanStartX] = useState(0);
+  const [panStartY, setPanStartY] = useState(0);
   const [panStartIndex, setPanStartIndex] = useState(0);
+  const [startPadding, setStartPadding] = useState(0.05);
+  const [startBars, setStartBars] = useState(80);
 
   // Mouse crosshair & drawing in-progress state
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
@@ -128,15 +136,15 @@ export default function ChartCanvas({
       if (c.volume > maxVolume) maxVolume = c.volume;
     });
 
-    // Add padding to price scale (5%)
-    const padding = (maxPrice - minPrice) * 0.05 || 10;
+    // Add dynamic price scale padding ratio
+    const padding = (maxPrice - minPrice) * pricePaddingPercent || 10;
     return {
       minPrice: minPrice - padding,
       maxPrice: maxPrice + padding,
       minVolume: maxVolume,
       visible,
     };
-  }, [effectiveCandles, startIndex, barsToShow]);
+  }, [effectiveCandles, startIndex, barsToShow, pricePaddingPercent]);
 
   // Convert Time & Price to Canvas X, Y coordinates
   const priceToY = (price: number, minPrice: number, maxPrice: number, height: number) => {
@@ -257,20 +265,7 @@ export default function ChartCanvas({
       // Symbol Title Line
       ctx.fillStyle = isDark ? "#ffffff" : "#131722";
       ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, sans-serif";
-      ctx.fillText(`${symbolName} · ${timeframeLabel} · NSE`, 15, 22);
-
-      // Buy & Sell Quote Badges (TradingView Style)
-      const pStr = activeCandle.close.toFixed(2);
-      ctx.fillStyle = "#f23645"; // Red Sell
-      ctx.fillRect(15, 30, 90, 22);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 10px sans-serif";
-      ctx.fillText(`${pStr} SELL`, 22, 44);
-
-      ctx.fillStyle = "#089981"; // Blue/Green Buy
-      ctx.fillRect(112, 30, 90, 22);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(`${pStr} BUY`, 122, 44);
+      ctx.fillText(`${symbolName} · ${timeframeLabel} · NSE`, 15, 20);
 
       // OHLC Readout Line
       const diff = activeCandle.close - activeCandle.open;
@@ -282,18 +277,18 @@ export default function ChartCanvas({
       const ohlcText = `O ${activeCandle.open.toFixed(2)}  H ${activeCandle.high.toFixed(
         2
       )}  L ${activeCandle.low.toFixed(2)}  C ${activeCandle.close.toFixed(2)}`;
-      ctx.fillText(ohlcText, 15, 68);
+      ctx.fillText(ohlcText, 15, 38);
 
       ctx.fillStyle = diffColor;
       ctx.fillText(
         `${diff >= 0 ? "+" : ""}${diff.toFixed(2)} (${diff >= 0 ? "+" : ""}${diffPct.toFixed(2)}%)`,
         ctx.measureText(ohlcText).width + 25,
-        68
+        38
       );
 
       // Volume readout
       ctx.fillStyle = isDark ? "#787b86" : "#787b86";
-      ctx.fillText(`Vol ${(activeCandle.volume / 1000).toFixed(2)}K`, 15, 84);
+      ctx.fillText(`Vol ${(activeCandle.volume / 1000).toFixed(2)}K`, 15, 54);
     }
 
     // 3. Draw Volume Bars at bottom 18% of chart
@@ -880,8 +875,24 @@ export default function ChartCanvas({
   // Mouse Interaction Handlers
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? 5 : -5;
-    setBarsToShow((prev) => Math.min(250, Math.max(20, prev + delta)));
+    if (!canvasRef.current) return;
+    const width = canvasRef.current.width;
+    const chartWidth = width - 75;
+
+    const zoomFactor = e.deltaY > 0 ? 1.15 : 0.85;
+    const newBars = Math.min(300, Math.max(15, Math.round(barsToShow * zoomFactor)));
+
+    // Zoom centered around current mouse cursor location (TradingView style)
+    if (mousePos && mousePos.x < chartWidth && effectiveCandles.length > 0) {
+      const mouseIdx = xToIndex(mousePos.x, width);
+      const ratio = mousePos.x / chartWidth;
+      const newStart = Math.max(
+        0,
+        Math.min(effectiveCandles.length - 10, Math.round(mouseIdx - ratio * newBars))
+      );
+      setStartIndex(newStart);
+    }
+    setBarsToShow(newBars);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -889,6 +900,25 @@ export default function ChartCanvas({
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    const chartWidth = canvasRef.current.width - 75;
+    const chartHeight = canvasRef.current.height - 40;
+
+    // Right price scale drag check
+    if (x > chartWidth) {
+      setIsScalingPrice(true);
+      setPanStartY(y);
+      setStartPadding(pricePaddingPercent);
+      return;
+    }
+
+    // Bottom time scale drag check
+    if (y > chartHeight) {
+      setIsScalingTime(true);
+      setPanStartX(x);
+      setStartBars(barsToShow);
+      return;
+    }
 
     if (isSelectingReplayCutoff && onSelectReplayIndex) {
       const idx = xToIndex(x, canvasRef.current.width);
@@ -943,8 +973,24 @@ export default function ChartCanvas({
 
     setMousePos({ x, y });
 
+    const chartWidth = canvasRef.current.width - 75;
+    const chartHeight = canvasRef.current.height - 40;
+
+    if (isScalingPrice) {
+      const deltaY = y - panStartY;
+      const newPadding = Math.max(0.005, Math.min(3.0, startPadding + deltaY * 0.005));
+      setPricePaddingPercent(newPadding);
+      return;
+    }
+
+    if (isScalingTime) {
+      const deltaX = panStartX - x;
+      const newBars = Math.max(15, Math.min(300, startBars + Math.round(deltaX * 0.2)));
+      setBarsToShow(newBars);
+      return;
+    }
+
     if (isPanning) {
-      const chartWidth = canvasRef.current.width - 70;
       const barWidth = chartWidth / barsToShow;
       const deltaBars = Math.round((panStartX - x) / barWidth);
       const maxStart = Math.max(0, effectiveCandles.length - barsToShow);
@@ -954,21 +1000,59 @@ export default function ChartCanvas({
 
   const handleMouseUp = () => {
     setIsPanning(false);
+    setIsScalingPrice(false);
+    setIsScalingTime(false);
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const chartWidth = canvasRef.current.width - 75;
+    const chartHeight = canvasRef.current.height - 40;
+
+    // Reset price scale auto-fit on double click
+    if (x > chartWidth) {
+      setPricePaddingPercent(0.05);
+    }
+    // Reset time scale width on double click
+    if (y > chartHeight) {
+      setBarsToShow(80);
+    }
+  };
+
+  const getCursorStyle = () => {
+    if (isSelectingReplayCutoff) return "cursor-[#ef4444]";
+    if (isScalingPrice || (mousePos && mousePos.x > (canvasRef.current?.width || 0) - 75))
+      return "cursor-ns-resize";
+    if (isScalingTime || (mousePos && mousePos.y > (canvasRef.current?.height || 0) - 40))
+      return "cursor-ew-resize";
+    if (isPanning) return "cursor-grabbing";
+    return "cursor-crosshair";
   };
 
   return (
-    <div ref={containerRef} className="relative w-full h-full min-h-[550px] select-none bg-[#090d16] overflow-hidden rounded-xl">
+    <div
+      ref={containerRef}
+      className={`relative w-full h-full min-h-[580px] select-none overflow-hidden ${
+        theme === "dark" ? "bg-[#131722]" : "bg-[#ffffff]"
+      }`}
+    >
       <canvas
         ref={canvasRef}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onDoubleClick={handleDoubleClick}
         onMouseLeave={() => {
           setMousePos(null);
           setIsPanning(false);
+          setIsScalingPrice(false);
+          setIsScalingTime(false);
         }}
-        className="w-full h-full cursor-crosshair block"
+        className={`w-full h-full block ${getCursorStyle()}`}
       />
     </div>
   );
