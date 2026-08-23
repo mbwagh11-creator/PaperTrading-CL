@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import ChartCanvas, { DrawingType, DrawingItem, PracticeTrade } from "./ChartCanvas";
+import ChartCanvas, { DrawingType, DrawingItem } from "./ChartCanvas";
 import { Candle } from "../api/market/history/route";
 
 const POPULAR_SYMBOLS = [
@@ -42,18 +42,12 @@ export default function ChartingClient() {
     bollinger: false,
   });
 
-  // Replay Mode State
+  // TradingView Style Replay Mode State
   const [isReplayActive, setIsReplayActive] = useState(false);
+  const [isSelectingReplayCutoff, setIsSelectingReplayCutoff] = useState(false);
   const [replayIndex, setReplayIndex] = useState(200); // visible candles count
   const [isPlaying, setIsPlaying] = useState(false);
   const [replaySpeed, setReplaySpeed] = useState(1000); // ms per step
-
-  // Practice Trading in Replay
-  const [activeTrade, setActiveTrade] = useState<PracticeTrade | null>(null);
-  const [tradeHistory, setTradeHistory] = useState<PracticeTrade[]>([]);
-  const [tradeQuantity, setTradeQuantity] = useState(50);
-  const [tradeSL, setTradeSL] = useState<string>("");
-  const [tradeTP, setTradeTP] = useState<string>("");
 
   const replayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -87,64 +81,9 @@ export default function ChartingClient() {
         setIsPlaying(false);
         return prev;
       }
-      const nextIdx = prev + 1;
-
-      // Check practice trade SL / TP hits
-      if (activeTrade && activeTrade.status === "OPEN") {
-        const currCandle = candles[nextIdx - 1];
-        if (currCandle) {
-          const high = currCandle.high;
-          const low = currCandle.low;
-          const isBuy = activeTrade.side === "BUY";
-
-          let closedStatus: PracticeTrade["status"] | null = null;
-          let exitP = currCandle.close;
-
-          if (isBuy) {
-            if (activeTrade.stopLoss && low <= activeTrade.stopLoss) {
-              closedStatus = "CLOSED_SL";
-              exitP = activeTrade.stopLoss;
-            } else if (activeTrade.takeProfit && high >= activeTrade.takeProfit) {
-              closedStatus = "CLOSED_TP";
-              exitP = activeTrade.takeProfit;
-            }
-          } else {
-            // SELL
-            if (activeTrade.stopLoss && high >= activeTrade.stopLoss) {
-              closedStatus = "CLOSED_SL";
-              exitP = activeTrade.stopLoss;
-            } else if (activeTrade.takeProfit && low <= activeTrade.takeProfit) {
-              closedStatus = "CLOSED_TP";
-              exitP = activeTrade.takeProfit;
-            }
-          }
-
-          if (closedStatus) {
-            const pnl =
-              isBuy
-                ? (exitP - activeTrade.entryPrice) * tradeQuantity
-                : (activeTrade.entryPrice - exitP) * tradeQuantity;
-            const pnlPercent =
-              isBuy
-                ? ((exitP - activeTrade.entryPrice) / activeTrade.entryPrice) * 100
-                : ((activeTrade.entryPrice - exitP) / activeTrade.entryPrice) * 100;
-
-            const closedTrade: PracticeTrade = {
-              ...activeTrade,
-              status: closedStatus,
-              exitPrice: exitP,
-              pnl,
-              pnlPercent,
-            };
-            setActiveTrade(null);
-            setTradeHistory((h) => [closedTrade, ...h]);
-          }
-        }
-      }
-
-      return nextIdx;
+      return prev + 1;
     });
-  }, [candles, activeTrade, tradeQuantity]);
+  }, [candles.length]);
 
   // Replay Timer Loop
   useEffect(() => {
@@ -160,6 +99,13 @@ export default function ChartingClient() {
     };
   }, [isPlaying, isReplayActive, replaySpeed, stepForward]);
 
+  // Handle click on chart to set replay cutoff bar (TradingView style)
+  const handleSelectReplayIndex = (idx: number) => {
+    setReplayIndex(idx);
+    setIsSelectingReplayCutoff(false);
+    setIsPlaying(false);
+  };
+
   // Drawings Handlers
   const handleAddDrawing = (item: DrawingItem) => {
     setDrawings((prev) => [...prev, item]);
@@ -171,105 +117,23 @@ export default function ChartingClient() {
   };
 
   const handleClearDrawings = () => {
-    if (confirm("Clear all drawings from current chart workspace?")) {
+    if (confirm("Clear all technical drawings from current chart?")) {
       setDrawings([]);
     }
   };
 
-  // Practice Trade Execution Handler
-  const handlePlaceOrder = (side: "BUY" | "SELL") => {
-    const currentCandle = candles[replayIndex - 1] || candles[candles.length - 1];
-    if (!currentCandle) return;
-
-    const entry = currentCandle.close;
-    const sl = tradeSL ? parseFloat(tradeSL) : null;
-    const tp = tradeTP ? parseFloat(tradeTP) : null;
-
-    const newTrade: PracticeTrade = {
-      id: `trade_${Date.now()}`,
-      side,
-      entryPrice: entry,
-      stopLoss: sl,
-      takeProfit: tp,
-      entryTime: currentCandle.time,
-      status: "OPEN",
-    };
-
-    setActiveTrade(newTrade);
-  };
-
-  const handleCloseActiveTrade = () => {
-    if (!activeTrade) return;
-    const currentCandle = candles[replayIndex - 1] || candles[candles.length - 1];
-    if (!currentCandle) return;
-
-    const exitP = currentCandle.close;
-    const isBuy = activeTrade.side === "BUY";
-    const pnl = isBuy
-      ? (exitP - activeTrade.entryPrice) * tradeQuantity
-      : (activeTrade.entryPrice - exitP) * tradeQuantity;
-    const pnlPercent = isBuy
-      ? ((exitP - activeTrade.entryPrice) / activeTrade.entryPrice) * 100
-      : ((activeTrade.entryPrice - exitP) / activeTrade.entryPrice) * 100;
-
-    const closed: PracticeTrade = {
-      ...activeTrade,
-      status: "CLOSED_MANUAL",
-      exitPrice: exitP,
-      pnl,
-      pnlPercent,
-    };
-
-    setActiveTrade(null);
-    setTradeHistory((h) => [closed, ...h]);
-  };
-
   const currentCandle = candles[replayIndex - 1] || candles[candles.length - 1];
-  const lastPrice = currentCandle ? currentCandle.close : 0;
-  const currentUnrealizedPnl = activeTrade
-    ? activeTrade.side === "BUY"
-      ? (lastPrice - activeTrade.entryPrice) * tradeQuantity
-      : (activeTrade.entryPrice - lastPrice) * tradeQuantity
-    : 0;
 
   return (
-    <div className="space-y-4">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/80 border border-white/10 p-4 rounded-2xl backdrop-blur-xl">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
-            <span className="text-[#00E599]">📊</span> Technical Charting & Bar Replay Studio
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Practice technical tools (Pitchforks, Fibonacci, Support/Resistance Zones) & replay historical bar-by-bar price action.
-          </p>
-        </div>
-
-        {/* Replay Toggle Button */}
-        <button
-          onClick={() => {
-            setIsReplayActive(!isReplayActive);
-            if (!isReplayActive) {
-              setReplayIndex(Math.floor(candles.length * 0.5));
-            } else {
-              setReplayIndex(candles.length);
-              setIsPlaying(false);
-            }
-          }}
-          className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all shadow-md ${
-            isReplayActive
-              ? "bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30"
-              : "bg-[#00E599]/20 text-[#00E599] border border-[#00E599]/40 hover:bg-[#00E599]/30"
-          }`}
-        >
-          {isReplayActive ? "⏹ Exit Bar Replay Mode" : "⏯ Start Bar Replay Practice"}
-        </button>
-      </div>
-
-      {/* Top Controls Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/90 border border-white/10 p-3 rounded-2xl">
-        {/* Left: Symbol Selector & Timeframe Pills */}
+    <div className="space-y-3 min-h-[calc(100vh-120px)] flex flex-col">
+      {/* Top Main TradingView Header Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950 border border-white/10 p-3 rounded-2xl shrink-0 shadow-lg">
+        {/* Left: Symbol Selector, Timeframe Pills, Price Badge */}
         <div className="flex flex-wrap items-center gap-2">
+          <span className="font-extrabold text-sm text-[#00E599] flex items-center gap-1.5 mr-1">
+            <span>📊</span> Technical Studio
+          </span>
+
           {/* Symbol Select */}
           <select
             value={selectedSymbol}
@@ -302,16 +166,17 @@ export default function ChartingClient() {
 
           {/* Current Price Badge */}
           {currentCandle && (
-            <div className="flex items-center gap-2 bg-slate-900 border border-white/10 px-3 py-1.5 rounded-xl text-xs font-bold">
+            <div className="hidden sm:flex items-center gap-2 bg-slate-900 border border-white/10 px-3 py-1.5 rounded-xl text-xs font-bold">
               <span className="text-slate-400">{selectedSymbol}:</span>
               <span className="text-emerald-400">₹{currentCandle.close.toFixed(2)}</span>
             </div>
           )}
         </div>
 
-        {/* Right: Technical Indicators & Clear Canvas */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-xs text-slate-300 bg-slate-900 px-3 py-1.5 rounded-xl border border-white/10">
+        {/* Center/Right: Indicators, TradingView Replay Toggle & Clear */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Indicators Checkboxes */}
+          <div className="hidden md:flex items-center gap-1 text-xs text-slate-300 bg-slate-900 px-3 py-1.5 rounded-xl border border-white/10">
             <span className="font-semibold text-slate-400 mr-1">Indicators:</span>
             <label className="flex items-center gap-1 cursor-pointer hover:text-white">
               <input
@@ -342,6 +207,30 @@ export default function ChartingClient() {
             </label>
           </div>
 
+          {/* TRADINGVIEW BAR REPLAY TOGGLE BUTTON */}
+          <button
+            onClick={() => {
+              if (isReplayActive) {
+                setIsReplayActive(false);
+                setIsSelectingReplayCutoff(false);
+                setIsPlaying(false);
+                setReplayIndex(candles.length);
+              } else {
+                setIsReplayActive(true);
+                setIsSelectingReplayCutoff(true); // Auto-enable click cutoff selection
+              }
+            }}
+            className={`px-4 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all shadow-md ${
+              isReplayActive
+                ? "bg-[#00E599] text-slate-950 border border-[#00E599] shadow-[0_0_15px_rgba(0,229,153,0.4)]"
+                : "bg-white/10 text-slate-200 hover:bg-[#00E599]/20 hover:text-[#00E599] border border-white/15"
+            }`}
+          >
+            <span>🔄</span>
+            <span>Bar Replay</span>
+            {isReplayActive && <span className="w-2 h-2 rounded-full bg-slate-950 animate-ping" />}
+          </button>
+
           <button
             onClick={handleClearDrawings}
             className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 border border-white/10 text-xs font-bold transition-all"
@@ -352,10 +241,96 @@ export default function ChartingClient() {
         </div>
       </div>
 
-      {/* Main Workspace Layout (Left Drawing Tools, Center Canvas, Right Replay Practice Ticket) */}
-      <div className="grid grid-cols-1 lg:grid-cols-[64px_1fr_300px] gap-3 items-start">
-        {/* Left Drawing Tools Palette */}
-        <div className="flex lg:flex-col items-center gap-1.5 bg-slate-950 border border-white/10 p-2 rounded-2xl overflow-x-auto">
+      {/* Floating TradingView-Style Bar Replay Dock Controls */}
+      {isReplayActive && (
+        <div className="bg-slate-900/95 border border-[#00E599]/40 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-2xl backdrop-blur-xl animate-fadeIn shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-extrabold text-[#00E599] bg-[#00E599]/15 border border-[#00E599]/30 px-3 py-1 rounded-xl flex items-center gap-1.5">
+              <span>▶</span> REPLAY ACTIVE
+            </span>
+
+            {/* Jump Cutoff Bar Tool (TradingView Scissors) */}
+            <button
+              onClick={() => setIsSelectingReplayCutoff(!isSelectingReplayCutoff)}
+              className={`px-3 py-1 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all border ${
+                isSelectingReplayCutoff
+                  ? "bg-rose-500 text-white border-rose-400 animate-pulse shadow-md"
+                  : "bg-white/10 text-slate-200 border-white/15 hover:bg-white/20"
+              }`}
+              title="Click on chart to jump replay starting point"
+            >
+              <span>✂️</span>
+              <span>{isSelectingReplayCutoff ? "Click Chart Bar to Jump" : "Jump To Bar"}</span>
+            </button>
+
+            <span className="text-xs text-slate-300 font-bold hidden sm:inline">
+              Bar {replayIndex} / {candles.length}
+            </span>
+          </div>
+
+          {/* Center Playback Controls */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setIsPlaying(!isPlaying);
+                setIsSelectingReplayCutoff(false);
+              }}
+              className="px-4 py-1 rounded-xl bg-[#00E599] text-slate-950 font-black text-xs hover:brightness-110 transition-all shadow-md"
+            >
+              {isPlaying ? "⏸ PAUSE" : "▶ PLAY"}
+            </button>
+
+            <button
+              onClick={stepForward}
+              disabled={isPlaying}
+              className="px-3 py-1 rounded-xl bg-white/10 text-slate-200 hover:bg-white/20 font-bold text-xs border border-white/10 transition-all disabled:opacity-50"
+              title="Forward 1 Bar"
+            >
+              ⏭ Step Forward
+            </button>
+
+            {/* Speed Selector */}
+            <select
+              value={replaySpeed}
+              onChange={(e) => setReplaySpeed(Number(e.target.value))}
+              className="bg-slate-950 border border-white/15 text-white text-xs font-bold rounded-xl px-2.5 py-1 focus:outline-none focus:border-[#00E599]"
+            >
+              <option value={2000}>0.5x</option>
+              <option value={1000}>1.0x</option>
+              <option value={500}>2.0x</option>
+              <option value={200}>5.0x</option>
+            </select>
+
+            {/* Replay Scrubber Slider */}
+            <input
+              type="range"
+              min={20}
+              max={candles.length}
+              value={replayIndex}
+              onChange={(e) => setReplayIndex(Number(e.target.value))}
+              className="w-28 sm:w-36 accent-[#00E599] cursor-pointer"
+            />
+          </div>
+
+          {/* Exit Replay Button */}
+          <button
+            onClick={() => {
+              setIsReplayActive(false);
+              setIsSelectingReplayCutoff(false);
+              setIsPlaying(false);
+              setReplayIndex(candles.length);
+            }}
+            className="px-3 py-1 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 text-xs font-bold transition-all"
+          >
+            ✕ Exit Replay
+          </button>
+        </div>
+      )}
+
+      {/* Main Full-Width TradingView Workspace (Left Tool Palette + Center Canvas) */}
+      <div className="flex-1 flex flex-col md:flex-row gap-2 min-h-[600px] border border-white/10 rounded-2xl overflow-hidden shadow-2xl bg-[#090d16]">
+        {/* Left Vertical Drawing Tools Bar (TradingView Style) */}
+        <div className="flex md:flex-col items-center gap-1.5 bg-slate-950 border-r border-white/10 p-2 overflow-x-auto shrink-0">
           <ToolButton
             active={activeTool === "CURSOR"}
             onClick={() => setActiveTool("CURSOR")}
@@ -412,8 +387,8 @@ export default function ChartingClient() {
           />
         </div>
 
-        {/* Center Interactive Canvas Engine */}
-        <div className="relative min-h-[550px] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+        {/* Center Interactive Full-Width Chart Canvas */}
+        <div className="flex-1 relative min-h-[580px] bg-[#090d16]">
           {loading ? (
             <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center text-slate-300 font-bold text-sm">
               <span className="animate-spin mr-2">⚙️</span> Loading candle historical feed...
@@ -427,190 +402,12 @@ export default function ChartingClient() {
               onAddDrawing={handleAddDrawing}
               onUpdateDrawing={handleUpdateDrawing}
               indicators={indicators}
-              activeTrade={activeTrade}
+              isSelectingReplayCutoff={isSelectingReplayCutoff}
+              onSelectReplayIndex={handleSelectReplayIndex}
             />
           )}
-        </div>
-
-        {/* Right Replay Practice Trade Terminal */}
-        <div className="bg-slate-950 border border-white/10 p-4 rounded-2xl space-y-4 text-xs">
-          <div className="flex items-center justify-between border-b border-white/10 pb-2">
-            <h3 className="font-extrabold text-sm text-white flex items-center gap-1.5">
-              <span>🎯</span> Practice Replay Ticket
-            </h3>
-            <span className="text-[10px] bg-[#00E599]/15 text-[#00E599] border border-[#00E599]/30 px-2 py-0.5 rounded-full font-bold">
-              Simulated Trading
-            </span>
-          </div>
-
-          {/* Trade Inputs */}
-          <div className="space-y-3">
-            <div>
-              <label className="text-slate-400 font-semibold block mb-1">Quantity / Lot Size:</label>
-              <input
-                type="number"
-                value={tradeQuantity}
-                onChange={(e) => setTradeQuantity(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:border-[#00E599]"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-slate-400 font-semibold block mb-1">Stop Loss (₹):</label>
-                <input
-                  type="number"
-                  placeholder="Optional SL"
-                  value={tradeSL}
-                  onChange={(e) => setTradeSL(e.target.value)}
-                  className="w-full bg-slate-900 border border-white/15 rounded-xl px-2.5 py-1.5 text-rose-400 font-bold focus:outline-none focus:border-rose-500"
-                />
-              </div>
-              <div>
-                <label className="text-slate-400 font-semibold block mb-1">Target TP (₹):</label>
-                <input
-                  type="number"
-                  placeholder="Optional TP"
-                  value={tradeTP}
-                  onChange={(e) => setTradeTP(e.target.value)}
-                  className="w-full bg-slate-900 border border-white/15 rounded-xl px-2.5 py-1.5 text-emerald-400 font-bold focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-
-            {/* Buy / Sell Buttons */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                onClick={() => handlePlaceOrder("BUY")}
-                disabled={Boolean(activeTrade)}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-black py-2.5 rounded-xl transition-all shadow-md text-xs uppercase"
-              >
-                BUY LONG ↗
-              </button>
-              <button
-                onClick={() => handlePlaceOrder("SELL")}
-                disabled={Boolean(activeTrade)}
-                className="w-full bg-rose-500 hover:bg-rose-400 disabled:opacity-50 text-slate-950 font-black py-2.5 rounded-xl transition-all shadow-md text-xs uppercase"
-              >
-                SELL SHORT ↘
-              </button>
-            </div>
-          </div>
-
-          {/* Active Trade Box */}
-          {activeTrade && (
-            <div className="bg-slate-900 border border-[#00E599]/30 rounded-xl p-3 space-y-2">
-              <div className="flex items-center justify-between font-bold">
-                <span className={activeTrade.side === "BUY" ? "text-emerald-400" : "text-rose-400"}>
-                  {activeTrade.side} {selectedSymbol} @ ₹{activeTrade.entryPrice}
-                </span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">
-                  LIVE OPEN
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-slate-300 font-medium">
-                <span>Unrealized P&L:</span>
-                <span
-                  className={`font-black text-sm ${
-                    currentUnrealizedPnl >= 0 ? "text-emerald-400" : "text-rose-400"
-                  }`}
-                >
-                  {currentUnrealizedPnl >= 0 ? "+" : ""}₹{currentUnrealizedPnl.toFixed(2)}
-                </span>
-              </div>
-              <button
-                onClick={handleCloseActiveTrade}
-                className="w-full bg-white/10 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-extrabold py-1.5 rounded-lg text-xs transition-all mt-1"
-              >
-                Close Trade Position Now
-              </button>
-            </div>
-          )}
-
-          {/* Practice Trade History Log */}
-          <div>
-            <h4 className="font-bold text-slate-300 mb-2 border-b border-white/10 pb-1">
-              📜 Session Trade History ({tradeHistory.length})
-            </h4>
-            {tradeHistory.length === 0 ? (
-              <p className="text-slate-500 text-[11px] italic">No trades placed in this replay session yet.</p>
-            ) : (
-              <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
-                {tradeHistory.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center justify-between bg-slate-900/60 p-2 rounded-lg border border-white/5"
-                  >
-                    <span className="font-bold text-slate-300">
-                      {t.side} @ ₹{t.entryPrice}
-                    </span>
-                    <span
-                      className={`font-black ${
-                        (t.pnl || 0) >= 0 ? "text-emerald-400" : "text-rose-400"
-                      }`}
-                    >
-                      {(t.pnl || 0) >= 0 ? "+" : ""}₹{(t.pnl || 0).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
-
-      {/* Bottom Bar Replay Controller */}
-      {isReplayActive && (
-        <div className="bg-slate-950 border border-[#00E599]/40 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-2xl animate-fadeIn">
-          {/* Status & Bar Slider */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-extrabold text-[#00E599] flex items-center gap-1.5 bg-[#00E599]/10 px-3 py-1 rounded-full border border-[#00E599]/30">
-              <span className="w-2 h-2 rounded-full bg-[#00E599] animate-ping" />
-              BAR REPLAY ACTIVE
-            </span>
-            <span className="text-xs text-slate-300 font-bold">
-              Bar {replayIndex} of {candles.length}
-            </span>
-            <input
-              type="range"
-              min={20}
-              max={candles.length}
-              value={replayIndex}
-              onChange={(e) => setReplayIndex(Number(e.target.value))}
-              className="w-36 accent-[#00E599] cursor-pointer"
-            />
-          </div>
-
-          {/* Replay Controls (Play, Step, Speed) */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="px-4 py-1.5 rounded-xl bg-[#00E599] text-slate-950 font-black text-xs hover:brightness-110 transition-all shadow-md"
-            >
-              {isPlaying ? "⏸ PAUSE" : "▶ PLAY REPLAY"}
-            </button>
-            <button
-              onClick={stepForward}
-              disabled={isPlaying}
-              className="px-3.5 py-1.5 rounded-xl bg-white/10 text-slate-200 hover:bg-white/20 font-bold text-xs border border-white/10 transition-all disabled:opacity-50"
-            >
-              ⏭ Step 1 Bar
-            </button>
-
-            {/* Speed Selector */}
-            <select
-              value={replaySpeed}
-              onChange={(e) => setReplaySpeed(Number(e.target.value))}
-              className="bg-slate-900 border border-white/15 text-white text-xs font-bold rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-[#00E599]"
-            >
-              <option value={2000}>0.5x Speed</option>
-              <option value={1000}>1.0x Speed</option>
-              <option value={500}>2.0x Speed</option>
-              <option value={200}>5.0x Speed</option>
-            </select>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -630,7 +427,7 @@ function ToolButton({
     <button
       onClick={onClick}
       title={title}
-      className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg transition-all shrink-0 ${
+      className={`w-10 h-10 rounded-xl flex items-center justify-center text-base transition-all shrink-0 ${
         active
           ? "bg-[#00E599] text-slate-950 shadow-[0_0_15px_rgba(0,229,153,0.4)] font-bold scale-105"
           : "bg-white/5 hover:bg-white/15 text-slate-300 border border-white/5"

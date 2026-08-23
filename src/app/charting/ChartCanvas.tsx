@@ -61,6 +61,8 @@ interface ChartCanvasProps {
   };
   activeTrade?: PracticeTrade | null;
   onPlaceReplayOrder?: (side: "BUY" | "SELL", entry: number, sl: number, tp: number) => void;
+  isSelectingReplayCutoff?: boolean;
+  onSelectReplayIndex?: (index: number) => void;
 }
 
 export default function ChartCanvas({
@@ -72,6 +74,8 @@ export default function ChartCanvas({
   onUpdateDrawing,
   indicators,
   activeTrade,
+  isSelectingReplayCutoff,
+  onSelectReplayIndex,
 }: ChartCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -757,6 +761,27 @@ export default function ChartCanvas({
       ctx.font = "bold 10px sans-serif";
       ctx.fillText("⏸ REPLAY CUTOFF", x - 40, 25);
     }
+
+    // 9. Hover Replay Jump Scissors Line (TradingView Style)
+    if (isSelectingReplayCutoff && mousePos) {
+      const hoverIdx = xToIndex(mousePos.x, width);
+      const x = indexToX(hoverIdx, width);
+
+      ctx.strokeStyle = "#ef4444";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = "#ef4444";
+      ctx.fillRect(x - 55, 12, 110, 24);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillText("✂️ CLICK TO REPLAY HERE", x - 50, 28);
+    }
   }, [
     canvasRef,
     getVisibleRange,
@@ -771,6 +796,7 @@ export default function ChartCanvas({
     activeTrade,
     visibleCount,
     candles.length,
+    isSelectingReplayCutoff,
   ]);
 
   // Handle Resize
@@ -804,6 +830,13 @@ export default function ChartCanvas({
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    if (isSelectingReplayCutoff && onSelectReplayIndex) {
+      const idx = xToIndex(x, canvasRef.current.width);
+      const clampedIdx = Math.max(1, Math.min(candles.length, idx + 1));
+      onSelectReplayIndex(clampedIdx);
+      return;
+    }
 
     if (activeTool === "CURSOR") {
       setIsPanning(true);
