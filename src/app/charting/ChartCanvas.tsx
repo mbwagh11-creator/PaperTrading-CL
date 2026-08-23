@@ -90,6 +90,7 @@ export default function ChartCanvas({
   const [startIndex, setStartIndex] = useState<number>(0);
   const [barsToShow, setBarsToShow] = useState<number>(80);
   const [pricePaddingPercent, setPricePaddingPercent] = useState<number>(0.05); // Vertical price scale padding ratio
+  const [priceOffset, setPriceOffset] = useState<number>(0); // Vertical free 2D price shift offset
 
   // Dragging & scaling states
   const [isPanning, setIsPanning] = useState(false);
@@ -98,6 +99,7 @@ export default function ChartCanvas({
   const [panStartX, setPanStartX] = useState(0);
   const [panStartY, setPanStartY] = useState(0);
   const [panStartIndex, setPanStartIndex] = useState(0);
+  const [panStartPriceOffset, setPanStartPriceOffset] = useState(0);
   const [startPadding, setStartPadding] = useState(0.05);
   const [startBars, setStartBars] = useState(80);
 
@@ -108,6 +110,11 @@ export default function ChartCanvas({
 
   // Limit effective candles to current replay cutoff count
   const effectiveCandles = candles.slice(0, visibleCount);
+
+  // Reset priceOffset when symbol changes
+  useEffect(() => {
+    setPriceOffset(0);
+  }, [symbolName]);
 
   // Auto-scroll to latest candle when visible count increases during replay
   useEffect(() => {
@@ -136,15 +143,15 @@ export default function ChartCanvas({
       if (c.volume > maxVolume) maxVolume = c.volume;
     });
 
-    // Add dynamic price scale padding ratio
+    // Add dynamic price scale padding ratio & free 2D price shift offset
     const padding = (maxPrice - minPrice) * pricePaddingPercent || 10;
     return {
-      minPrice: minPrice - padding,
-      maxPrice: maxPrice + padding,
+      minPrice: minPrice - padding + priceOffset,
+      maxPrice: maxPrice + padding + priceOffset,
       minVolume: maxVolume,
       visible,
     };
-  }, [effectiveCandles, startIndex, barsToShow, pricePaddingPercent]);
+  }, [effectiveCandles, startIndex, barsToShow, pricePaddingPercent, priceOffset]);
 
   // Convert Time & Price to Canvas X, Y coordinates
   const priceToY = (price: number, minPrice: number, maxPrice: number, height: number) => {
@@ -254,6 +261,15 @@ export default function ChartCanvas({
         .toString()
         .padStart(2, "0")} ${d.getDate()}/${d.getMonth() + 1}`;
       ctx.fillText(timeStr, x - 25, chartHeight + 20);
+    }
+
+    // Auto-fit Price Scale Button (TradingView Style)
+    if (priceOffset !== 0 || pricePaddingPercent !== 0.05) {
+      ctx.fillStyle = "#2962ff";
+      ctx.fillRect(chartWidth + 8, chartHeight + 8, 55, 20);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillText("AUTO", chartWidth + 20, chartHeight + 22);
     }
 
     // 2. Draw TradingView Chart Legend Overlay (Top Left)
@@ -904,6 +920,13 @@ export default function ChartCanvas({
     const chartWidth = canvasRef.current.width - 75;
     const chartHeight = canvasRef.current.height - 40;
 
+    // AUTO scale reset click check
+    if (x > chartWidth + 8 && y > chartHeight + 8) {
+      setPriceOffset(0);
+      setPricePaddingPercent(0.05);
+      return;
+    }
+
     // Right price scale drag check
     if (x > chartWidth) {
       setIsScalingPrice(true);
@@ -930,7 +953,9 @@ export default function ChartCanvas({
     if (activeTool === "CURSOR") {
       setIsPanning(true);
       setPanStartX(x);
+      setPanStartY(y);
       setPanStartIndex(startIndex);
+      setPanStartPriceOffset(priceOffset);
       return;
     }
 
@@ -995,6 +1020,12 @@ export default function ChartCanvas({
       const deltaBars = Math.round((panStartX - x) / barWidth);
       const maxStart = Math.max(0, effectiveCandles.length - barsToShow);
       setStartIndex(Math.min(maxStart, Math.max(0, panStartIndex + deltaBars)));
+
+      // Free 2D Vertical Price Shift (TradingView Style)
+      const { minPrice, maxPrice } = getVisibleRange();
+      const pricePerPx = (maxPrice - minPrice) / chartHeight;
+      const deltaY = y - panStartY;
+      setPriceOffset(panStartPriceOffset + deltaY * pricePerPx);
     }
   };
 
@@ -1007,16 +1038,14 @@ export default function ChartCanvas({
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (!canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const chartWidth = canvasRef.current.width - 75;
     const chartHeight = canvasRef.current.height - 40;
 
-    // Reset price scale auto-fit on double click
-    if (x > chartWidth) {
-      setPricePaddingPercent(0.05);
-    }
-    // Reset time scale width on double click
+    // Reset price scale offset & padding auto-fit on double click (TradingView Style)
+    setPriceOffset(0);
+    setPricePaddingPercent(0.05);
+
+    // Reset time scale width on double click if on time axis
     if (y > chartHeight) {
       setBarsToShow(80);
     }
