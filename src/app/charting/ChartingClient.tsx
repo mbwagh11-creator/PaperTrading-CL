@@ -5,8 +5,8 @@ import ChartCanvas, { DrawingType, DrawingItem } from "./ChartCanvas";
 import { Candle } from "../api/market/history/route";
 
 const POPULAR_SYMBOLS = [
+  { symbol: "BANKNIFTY", name: "Nifty Bank Index" },
   { symbol: "NIFTY", name: "NIFTY 50 Index" },
-  { symbol: "BANKNIFTY", name: "NIFTY Bank Index" },
   { symbol: "RELIANCE", name: "Reliance Industries" },
   { symbol: "TCS", name: "Tata Consultancy Services" },
   { symbol: "INFY", name: "Infosys Ltd" },
@@ -17,21 +17,25 @@ const POPULAR_SYMBOLS = [
 
 const TIMEFRAMES = [
   { label: "1m", interval: "1m", range: "1d" },
+  { label: "3m", interval: "1m", range: "1d" },
   { label: "5m", interval: "5m", range: "5d" },
   { label: "15m", interval: "15m", range: "5d" },
-  { label: "1h", interval: "1h", range: "1mo" },
-  { label: "1D", interval: "1d", range: "3mo" },
+  { label: "4h", interval: "1h", range: "1mo" },
+  { label: "D", interval: "1d", range: "3mo" },
 ];
 
 export default function ChartingClient() {
-  const [selectedSymbol, setSelectedSymbol] = useState("NIFTY");
-  const [selectedTf, setSelectedTf] = useState(TIMEFRAMES[1]); // 5m default
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [selectedSymbol, setSelectedSymbol] = useState("BANKNIFTY");
+  const [selectedTf, setSelectedTf] = useState(TIMEFRAMES[2]); // 5m default
   const [candles, setCandles] = useState<Candle[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Active Tool & Drawings
   const [activeTool, setActiveTool] = useState<DrawingType>("CURSOR");
   const [drawings, setDrawings] = useState<DrawingItem[]>([]);
+  const [hideDrawings, setHideDrawings] = useState(false);
+  const [lockDrawings, setLockDrawings] = useState(false);
 
   // Indicators toggle
   const [indicators, setIndicators] = useState({
@@ -41,13 +45,14 @@ export default function ChartingClient() {
     vwap: true,
     bollinger: false,
   });
+  const [showIndicatorsMenu, setShowIndicatorsMenu] = useState(false);
 
   // TradingView Style Replay Mode State
   const [isReplayActive, setIsReplayActive] = useState(false);
   const [isSelectingReplayCutoff, setIsSelectingReplayCutoff] = useState(false);
-  const [replayIndex, setReplayIndex] = useState(200); // visible candles count
+  const [replayIndex, setReplayIndex] = useState(200);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [replaySpeed, setReplaySpeed] = useState(1000); // ms per step
+  const [replaySpeed, setReplaySpeed] = useState(1000);
 
   const replayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -108,6 +113,7 @@ export default function ChartingClient() {
 
   // Drawings Handlers
   const handleAddDrawing = (item: DrawingItem) => {
+    if (lockDrawings) return;
     setDrawings((prev) => [...prev, item]);
     setActiveTool("CURSOR");
   };
@@ -117,46 +123,57 @@ export default function ChartingClient() {
   };
 
   const handleClearDrawings = () => {
-    if (confirm("Clear all technical drawings from current chart?")) {
+    if (confirm("Clear all drawings from chart?")) {
       setDrawings([]);
     }
   };
 
-  const currentCandle = candles[replayIndex - 1] || candles[candles.length - 1];
+  const isDark = theme === "dark";
 
   return (
-    <div className="space-y-3 min-h-[calc(100vh-120px)] flex flex-col">
-      {/* Top Main TradingView Header Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950 border border-white/10 p-3 rounded-2xl shrink-0 shadow-lg">
-        {/* Left: Symbol Selector, Timeframe Pills, Price Badge */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-extrabold text-sm text-[#00E599] flex items-center gap-1.5 mr-1">
-            <span>📊</span> Technical Studio
-          </span>
+    <div className={`w-full min-h-[calc(100vh-100px)] flex flex-col font-sans select-none ${isDark ? "bg-[#131722] text-[#d1d4dc]" : "bg-[#ffffff] text-[#131722]"}`}>
+      {/* 1. OFFICIAL TRADINGVIEW TOP TOOLBAR */}
+      <div className={`flex items-center justify-between border-b px-2 py-1.5 overflow-x-auto text-xs shrink-0 ${isDark ? "border-[#2a2e39] bg-[#131722]" : "border-[#e0e3eb] bg-[#ffffff]"}`}>
+        {/* Left Section: Symbol, Timeframes, Indicators, Replay */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Symbol Selector Pill */}
+          <div className="relative flex items-center">
+            <select
+              value={selectedSymbol}
+              onChange={(e) => setSelectedSymbol(e.target.value)}
+              className={`font-bold px-2.5 py-1 rounded-md cursor-pointer border focus:outline-none appearance-none pr-6 ${
+                isDark ? "bg-[#1e222d] border-[#2a2e39] text-[#ffffff]" : "bg-[#f0f3fa] border-[#e0e3eb] text-[#131722]"
+              }`}
+            >
+              {POPULAR_SYMBOLS.map((s) => (
+                <option key={s.symbol} value={s.symbol}>
+                  {s.symbol}
+                </option>
+              ))}
+            </select>
+            <span className="absolute right-2 text-[9px] pointer-events-none opacity-60">▼</span>
+          </div>
 
-          {/* Symbol Select */}
-          <select
-            value={selectedSymbol}
-            onChange={(e) => setSelectedSymbol(e.target.value)}
-            className="bg-slate-900 border border-white/15 text-white text-xs font-bold rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#00E599]"
-          >
-            {POPULAR_SYMBOLS.map((s) => (
-              <option key={s.symbol} value={s.symbol}>
-                {s.symbol} ({s.name})
-              </option>
-            ))}
-          </select>
+          <button className={`p-1.5 rounded hover:bg-white/10 ${isDark ? "text-[#b2b5be]" : "text-[#434651]"}`} title="Compare Symbol">
+            ➕
+          </button>
 
-          {/* Timeframe Pills */}
-          <div className="flex items-center bg-slate-900 rounded-xl p-1 border border-white/10">
+          <div className={`h-4 w-[1px] mx-1 ${isDark ? "bg-[#2a2e39]" : "bg-[#e0e3eb]"}`} />
+
+          {/* Timeframe Buttons */}
+          <div className="flex items-center gap-0.5">
             {TIMEFRAMES.map((tf) => (
               <button
                 key={tf.label}
                 onClick={() => setSelectedTf(tf)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                className={`px-2 py-1 font-semibold rounded text-xs transition-all ${
                   selectedTf.label === tf.label
-                    ? "bg-[#00E599] text-slate-950 shadow-sm"
-                    : "text-slate-400 hover:text-white"
+                    ? isDark
+                      ? "bg-[#2a2e39] text-[#2962ff] font-bold"
+                      : "bg-[#e0e3eb] text-[#2962ff] font-bold"
+                    : isDark
+                    ? "text-[#b2b5be] hover:bg-[#1e222d] hover:text-[#ffffff]"
+                    : "text-[#434651] hover:bg-[#f0f3fa] hover:text-[#131722]"
                 }`}
               >
                 {tf.label}
@@ -164,50 +181,62 @@ export default function ChartingClient() {
             ))}
           </div>
 
-          {/* Current Price Badge */}
-          {currentCandle && (
-            <div className="hidden sm:flex items-center gap-2 bg-slate-900 border border-white/10 px-3 py-1.5 rounded-xl text-xs font-bold">
-              <span className="text-slate-400">{selectedSymbol}:</span>
-              <span className="text-emerald-400">₹{currentCandle.close.toFixed(2)}</span>
-            </div>
-          )}
-        </div>
+          <div className={`h-4 w-[1px] mx-1 ${isDark ? "bg-[#2a2e39]" : "bg-[#e0e3eb]"}`} />
 
-        {/* Center/Right: Indicators, TradingView Replay Toggle & Clear */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Indicators Checkboxes */}
-          <div className="hidden md:flex items-center gap-1 text-xs text-slate-300 bg-slate-900 px-3 py-1.5 rounded-xl border border-white/10">
-            <span className="font-semibold text-slate-400 mr-1">Indicators:</span>
-            <label className="flex items-center gap-1 cursor-pointer hover:text-white">
-              <input
-                type="checkbox"
-                checked={indicators.sma20}
-                onChange={(e) => setIndicators((i) => ({ ...i, sma20: e.target.checked }))}
-                className="accent-[#3b82f6]"
-              />
-              <span>SMA20</span>
-            </label>
-            <label className="flex items-center gap-1 cursor-pointer hover:text-white ml-2">
-              <input
-                type="checkbox"
-                checked={indicators.vwap}
-                onChange={(e) => setIndicators((i) => ({ ...i, vwap: e.target.checked }))}
-                className="accent-[#00E599]"
-              />
-              <span>VWAP</span>
-            </label>
-            <label className="flex items-center gap-1 cursor-pointer hover:text-white ml-2">
-              <input
-                type="checkbox"
-                checked={indicators.bollinger}
-                onChange={(e) => setIndicators((i) => ({ ...i, bollinger: e.target.checked }))}
-                className="accent-[#38bdf8]"
-              />
-              <span>B-Bands</span>
-            </label>
+          {/* Chart Style (Candles) */}
+          <button className={`p-1.5 rounded font-bold hover:bg-white/10 ${isDark ? "text-[#b2b5be]" : "text-[#434651]"}`} title="Candles">
+            🕯️
+          </button>
+
+          {/* Indicators Dropdown Toggle */}
+          <div className="relative">
+            <button
+              onClick={() => setShowIndicatorsMenu(!showIndicatorsMenu)}
+              className={`px-2.5 py-1 font-semibold rounded flex items-center gap-1.5 ${
+                isDark ? "hover:bg-[#1e222d] text-[#b2b5be]" : "hover:bg-[#f0f3fa] text-[#434651]"
+              }`}
+            >
+              <span className="text-[#2962ff] font-bold">fx</span>
+              <span>Indicators</span>
+            </button>
+
+            {showIndicatorsMenu && (
+              <div className={`absolute left-0 top-full mt-1 z-50 w-48 border rounded-lg shadow-2xl p-2 text-xs space-y-1.5 ${isDark ? "bg-[#1e222d] border-[#2a2e39] text-[#ffffff]" : "bg-[#ffffff] border-[#e0e3eb] text-[#131722]"}`}>
+                <div className="font-bold text-[10px] text-slate-400 uppercase tracking-wider mb-1">Overlays</div>
+                <label className="flex items-center justify-between p-1.5 rounded hover:bg-white/10 cursor-pointer">
+                  <span>SMA 20</span>
+                  <input
+                    type="checkbox"
+                    checked={indicators.sma20}
+                    onChange={(e) => setIndicators((i) => ({ ...i, sma20: e.target.checked }))}
+                    className="accent-[#2962ff]"
+                  />
+                </label>
+                <label className="flex items-center justify-between p-1.5 rounded hover:bg-white/10 cursor-pointer">
+                  <span>VWAP</span>
+                  <input
+                    type="checkbox"
+                    checked={indicators.vwap}
+                    onChange={(e) => setIndicators((i) => ({ ...i, vwap: e.target.checked }))}
+                    className="accent-[#089981]"
+                  />
+                </label>
+                <label className="flex items-center justify-between p-1.5 rounded hover:bg-white/10 cursor-pointer">
+                  <span>Bollinger Bands</span>
+                  <input
+                    type="checkbox"
+                    checked={indicators.bollinger}
+                    onChange={(e) => setIndicators((i) => ({ ...i, bollinger: e.target.checked }))}
+                    className="accent-[#38bdf8]"
+                  />
+                </label>
+              </div>
+            )}
           </div>
 
-          {/* TRADINGVIEW BAR REPLAY TOGGLE BUTTON */}
+          <div className={`h-4 w-[1px] mx-1 ${isDark ? "bg-[#2a2e39]" : "bg-[#e0e3eb]"}`} />
+
+          {/* TRADINGVIEW REPLAY BUTTON (Rewind Icon ⏪) */}
           <button
             onClick={() => {
               if (isReplayActive) {
@@ -217,102 +246,109 @@ export default function ChartingClient() {
                 setReplayIndex(candles.length);
               } else {
                 setIsReplayActive(true);
-                setIsSelectingReplayCutoff(true); // Auto-enable click cutoff selection
+                setIsSelectingReplayCutoff(true); // Jump mode default
               }
             }}
-            className={`px-4 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all shadow-md ${
+            className={`px-3 py-1 font-bold rounded flex items-center gap-1.5 transition-all ${
               isReplayActive
-                ? "bg-[#00E599] text-slate-950 border border-[#00E599] shadow-[0_0_15px_rgba(0,229,153,0.4)]"
-                : "bg-white/10 text-slate-200 hover:bg-[#00E599]/20 hover:text-[#00E599] border border-white/15"
+                ? "bg-[#2962ff] text-white shadow-md"
+                : isDark
+                ? "text-[#b2b5be] hover:bg-[#1e222d] hover:text-white"
+                : "text-[#434651] hover:bg-[#f0f3fa] hover:text-[#131722]"
             }`}
           >
-            <span>🔄</span>
-            <span>Bar Replay</span>
-            {isReplayActive && <span className="w-2 h-2 rounded-full bg-slate-950 animate-ping" />}
+            <span>⏪</span>
+            <span>Replay</span>
           </button>
+        </div>
 
+        {/* Right Section: Theme Toggle, Settings, Fullscreen, Camera */}
+        <div className="flex items-center gap-1 shrink-0">
           <button
-            onClick={handleClearDrawings}
-            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 border border-white/10 text-xs font-bold transition-all"
-            title="Clear all drawings"
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            className={`p-1.5 rounded font-bold hover:bg-white/10 ${isDark ? "text-[#b2b5be]" : "text-[#434651]"}`}
+            title="Toggle Light/Dark Theme"
           >
-            🗑 Clear Tools
+            {isDark ? "☀️" : "🌙"}
+          </button>
+          <button
+            onClick={() => {
+              if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+              } else {
+                document.exitFullscreen();
+              }
+            }}
+            className={`p-1.5 rounded font-bold hover:bg-white/10 ${isDark ? "text-[#b2b5be]" : "text-[#434651]"}`}
+            title="Toggle Fullscreen"
+          >
+            ⛶
           </button>
         </div>
       </div>
 
-      {/* Floating TradingView-Style Bar Replay Dock Controls */}
+      {/* 2. TRADINGVIEW REPLAY FLOATING CONTROL BAR */}
       {isReplayActive && (
-        <div className="bg-slate-900/95 border border-[#00E599]/40 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-2xl backdrop-blur-xl animate-fadeIn shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-extrabold text-[#00E599] bg-[#00E599]/15 border border-[#00E599]/30 px-3 py-1 rounded-xl flex items-center gap-1.5">
-              <span>▶</span> REPLAY ACTIVE
+        <div className={`flex items-center justify-between border-b px-4 py-2 text-xs animate-fadeIn shrink-0 shadow-md ${isDark ? "bg-[#1e222d] border-[#2a2e39] text-[#ffffff]" : "bg-[#f0f3fa] border-[#e0e3eb] text-[#131722]"}`}>
+          <div className="flex items-center gap-3">
+            <span className="font-extrabold text-[#2962ff] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#2962ff] animate-ping" />
+              BAR REPLAY
             </span>
 
             {/* Jump Cutoff Bar Tool (TradingView Scissors) */}
             <button
               onClick={() => setIsSelectingReplayCutoff(!isSelectingReplayCutoff)}
-              className={`px-3 py-1 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all border ${
+              className={`px-3 py-1 rounded font-bold flex items-center gap-1.5 transition-all border ${
                 isSelectingReplayCutoff
-                  ? "bg-rose-500 text-white border-rose-400 animate-pulse shadow-md"
-                  : "bg-white/10 text-slate-200 border-white/15 hover:bg-white/20"
+                  ? "bg-[#f23645] text-white border-[#f23645] animate-pulse"
+                  : isDark
+                  ? "bg-[#2a2e39] border-[#363a45] text-white hover:bg-[#363a45]"
+                  : "bg-white border-[#e0e3eb] text-slate-800 hover:bg-slate-100"
               }`}
-              title="Click on chart to jump replay starting point"
             >
               <span>✂️</span>
-              <span>{isSelectingReplayCutoff ? "Click Chart Bar to Jump" : "Jump To Bar"}</span>
+              <span>{isSelectingReplayCutoff ? "Click Chart Bar to Jump" : "Jump to..."}</span>
             </button>
 
-            <span className="text-xs text-slate-300 font-bold hidden sm:inline">
+            <span className="opacity-75 font-semibold">
               Bar {replayIndex} / {candles.length}
             </span>
           </div>
 
-          {/* Center Playback Controls */}
+          {/* Center Replay Controls */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
                 setIsPlaying(!isPlaying);
                 setIsSelectingReplayCutoff(false);
               }}
-              className="px-4 py-1 rounded-xl bg-[#00E599] text-slate-950 font-black text-xs hover:brightness-110 transition-all shadow-md"
+              className="px-4 py-1 rounded bg-[#2962ff] text-white font-bold hover:brightness-110 shadow"
             >
-              {isPlaying ? "⏸ PAUSE" : "▶ PLAY"}
+              {isPlaying ? "⏸ Pause" : "▶ Play"}
             </button>
 
             <button
               onClick={stepForward}
               disabled={isPlaying}
-              className="px-3 py-1 rounded-xl bg-white/10 text-slate-200 hover:bg-white/20 font-bold text-xs border border-white/10 transition-all disabled:opacity-50"
-              title="Forward 1 Bar"
+              className={`px-3 py-1 rounded font-bold border ${isDark ? "bg-[#2a2e39] border-[#363a45] text-white" : "bg-white border-[#e0e3eb] text-slate-800"} disabled:opacity-40`}
             >
-              ⏭ Step Forward
+              ⏭ Step
             </button>
 
-            {/* Speed Selector */}
             <select
               value={replaySpeed}
               onChange={(e) => setReplaySpeed(Number(e.target.value))}
-              className="bg-slate-950 border border-white/15 text-white text-xs font-bold rounded-xl px-2.5 py-1 focus:outline-none focus:border-[#00E599]"
+              className={`px-2 py-1 rounded font-bold border focus:outline-none ${isDark ? "bg-[#131722] border-[#2a2e39] text-white" : "bg-white border-[#e0e3eb] text-slate-800"}`}
             >
               <option value={2000}>0.5x</option>
-              <option value={1000}>1.0x</option>
-              <option value={500}>2.0x</option>
-              <option value={200}>5.0x</option>
+              <option value={1000}>1x</option>
+              <option value={500}>2x</option>
+              <option value={200}>5x</option>
             </select>
-
-            {/* Replay Scrubber Slider */}
-            <input
-              type="range"
-              min={20}
-              max={candles.length}
-              value={replayIndex}
-              onChange={(e) => setReplayIndex(Number(e.target.value))}
-              className="w-28 sm:w-36 accent-[#00E599] cursor-pointer"
-            />
           </div>
 
-          {/* Exit Replay Button */}
+          {/* Close Replay */}
           <button
             onClick={() => {
               setIsReplayActive(false);
@@ -320,90 +356,119 @@ export default function ChartingClient() {
               setIsPlaying(false);
               setReplayIndex(candles.length);
             }}
-            className="px-3 py-1 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 text-xs font-bold transition-all"
+            className="px-3 py-1 font-bold text-rose-500 hover:bg-rose-500/10 rounded"
           >
             ✕ Exit Replay
           </button>
         </div>
       )}
 
-      {/* Main Full-Width TradingView Workspace (Left Tool Palette + Center Canvas) */}
-      <div className="flex-1 flex flex-col md:flex-row gap-2 min-h-[600px] border border-white/10 rounded-2xl overflow-hidden shadow-2xl bg-[#090d16]">
-        {/* Left Vertical Drawing Tools Bar (TradingView Style) */}
-        <div className="flex md:flex-col items-center gap-1.5 bg-slate-950 border-r border-white/10 p-2 overflow-x-auto shrink-0">
-          <ToolButton
+      {/* 3. MAIN WORKSPACE (LEFT ICON BAR + CENTER CANVAS) */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Vertical TradingView Icon Bar */}
+        <div className={`flex flex-col items-center gap-1 border-r py-2 px-1 shrink-0 ${isDark ? "border-[#2a2e39] bg-[#131722]" : "border-[#e0e3eb] bg-[#ffffff]"}`}>
+          <TvIconButton
             active={activeTool === "CURSOR"}
             onClick={() => setActiveTool("CURSOR")}
-            icon="👆"
-            title="Pan / Cursor"
+            icon="┼"
+            title="Crosshair (+)"
+            isDark={isDark}
           />
-          <ToolButton
+          <TvIconButton
+            active={activeTool === "TRENDLINE"}
+            onClick={() => setActiveTool("TRENDLINE")}
+            icon="╱"
+            title="Trendline Tools"
+            isDark={isDark}
+          />
+          <TvIconButton
             active={activeTool === "PITCHFORK"}
             onClick={() => setActiveTool("PITCHFORK")}
             icon="🔱"
-            title="Andrews Pitchfork (3 Points)"
+            title="Andrews Pitchfork"
+            isDark={isDark}
           />
-          <ToolButton
+          <TvIconButton
             active={activeTool === "FIBONACCI"}
             onClick={() => setActiveTool("FIBONACCI")}
             icon="📐"
             title="Fibonacci Retracement"
+            isDark={isDark}
           />
-          <ToolButton
+          <TvIconButton
             active={activeTool === "SR_ZONE"}
             onClick={() => setActiveTool("SR_ZONE")}
-            icon="🟥"
+            icon="▱"
             title="Support / Resistance Zone Box"
+            isDark={isDark}
           />
-          <ToolButton
-            active={activeTool === "TRENDLINE"}
-            onClick={() => setActiveTool("TRENDLINE")}
-            icon="📈"
-            title="Trendline (2 Points)"
-          />
-          <ToolButton
-            active={activeTool === "RAY"}
-            onClick={() => setActiveTool("RAY")}
-            icon="⚡"
-            title="Ray Line"
-          />
-          <ToolButton
-            active={activeTool === "HORIZONTAL_LINE"}
-            onClick={() => setActiveTool("HORIZONTAL_LINE")}
-            icon="➖"
-            title="Horizontal Price Level"
-          />
-          <ToolButton
-            active={activeTool === "POSITION_TOOL"}
-            onClick={() => setActiveTool("POSITION_TOOL")}
-            icon="🎯"
-            title="Long / Short Risk-Reward Box"
-          />
-          <ToolButton
+          <TvIconButton
             active={activeTool === "TEXT"}
             onClick={() => setActiveTool("TEXT")}
-            icon="📝"
-            title="Text Note Callout"
+            icon="T"
+            title="Text Callout Annotation"
+            isDark={isDark}
+          />
+          <TvIconButton
+            active={activeTool === "POSITION_TOOL"}
+            onClick={() => setActiveTool("POSITION_TOOL")}
+            icon="📊"
+            title="Long / Short Risk-Reward Tool"
+            isDark={isDark}
+          />
+          <TvIconButton
+            active={activeTool === "HORIZONTAL_LINE"}
+            onClick={() => setActiveTool("HORIZONTAL_LINE")}
+            icon="━"
+            title="Horizontal Line"
+            isDark={isDark}
+          />
+
+          <div className={`w-5 h-[1px] my-1 ${isDark ? "bg-[#2a2e39]" : "bg-[#e0e3eb]"}`} />
+
+          <TvIconButton
+            active={lockDrawings}
+            onClick={() => setLockDrawings(!lockDrawings)}
+            icon={lockDrawings ? "🔒" : "🔓"}
+            title="Lock All Drawings"
+            isDark={isDark}
+          />
+          <TvIconButton
+            active={hideDrawings}
+            onClick={() => setHideDrawings(!hideDrawings)}
+            icon={hideDrawings ? "🙈" : "👁️"}
+            title="Hide All Drawings"
+            isDark={isDark}
+          />
+          <TvIconButton
+            active={false}
+            onClick={handleClearDrawings}
+            icon="🗑️"
+            title="Clear All Drawings"
+            isDark={isDark}
           />
         </div>
 
-        {/* Center Interactive Full-Width Chart Canvas */}
-        <div className="flex-1 relative min-h-[580px] bg-[#090d16]">
+        {/* Center Interactive Full-Height Canvas */}
+        <div className="flex-1 relative h-full w-full">
           {loading ? (
-            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center text-slate-300 font-bold text-sm">
-              <span className="animate-spin mr-2">⚙️</span> Loading candle historical feed...
+            <div className={`absolute inset-0 flex items-center justify-center font-bold text-sm ${isDark ? "bg-[#131722] text-slate-300" : "bg-[#ffffff] text-slate-700"}`}>
+              <span className="animate-spin mr-2">⚙️</span> Loading candle historical data...
             </div>
           ) : (
             <ChartCanvas
               candles={candles}
               visibleCount={replayIndex}
               activeTool={activeTool}
-              drawings={drawings}
+              drawings={hideDrawings ? [] : drawings}
               onAddDrawing={handleAddDrawing}
               onUpdateDrawing={handleUpdateDrawing}
               indicators={indicators}
               isSelectingReplayCutoff={isSelectingReplayCutoff}
               onSelectReplayIndex={handleSelectReplayIndex}
+              theme={theme}
+              symbolName={selectedSymbol}
+              timeframeLabel={selectedTf.label}
             />
           )}
         </div>
@@ -412,25 +477,29 @@ export default function ChartingClient() {
   );
 }
 
-function ToolButton({
+function TvIconButton({
   active,
   onClick,
   icon,
   title,
+  isDark,
 }: {
   active: boolean;
   onClick: () => void;
   icon: string;
   title: string;
+  isDark: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
-      className={`w-10 h-10 rounded-xl flex items-center justify-center text-base transition-all shrink-0 ${
+      className={`w-8 h-8 rounded flex items-center justify-center font-bold text-sm transition-all ${
         active
-          ? "bg-[#00E599] text-slate-950 shadow-[0_0_15px_rgba(0,229,153,0.4)] font-bold scale-105"
-          : "bg-white/5 hover:bg-white/15 text-slate-300 border border-white/5"
+          ? "bg-[#2962ff] text-white shadow"
+          : isDark
+          ? "text-[#b2b5be] hover:bg-[#1e222d] hover:text-white"
+          : "text-[#434651] hover:bg-[#f0f3fa] hover:text-[#131722]"
       }`}
     >
       {icon}

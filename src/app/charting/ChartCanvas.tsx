@@ -63,6 +63,9 @@ interface ChartCanvasProps {
   onPlaceReplayOrder?: (side: "BUY" | "SELL", entry: number, sl: number, tp: number) => void;
   isSelectingReplayCutoff?: boolean;
   onSelectReplayIndex?: (index: number) => void;
+  theme?: "dark" | "light";
+  symbolName?: string;
+  timeframeLabel?: string;
 }
 
 export default function ChartCanvas({
@@ -76,6 +79,9 @@ export default function ChartCanvas({
   activeTrade,
   isSelectingReplayCutoff,
   onSelectReplayIndex,
+  theme = "dark",
+  symbolName = "NIFTY",
+  timeframeLabel = "5m",
 }: ChartCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -184,27 +190,32 @@ export default function ChartCanvas({
     const width = canvas.width;
     const height = canvas.height;
 
+    const isDark = theme === "dark";
+    const bgColor = isDark ? "#131722" : "#ffffff";
+    const gridColor = isDark ? "rgba(255, 255, 255, 0.05)" : "#f0f3fa";
+    const textColor = isDark ? "#787b86" : "#131722";
+
     // Clear background
-    ctx.fillStyle = "#090d16";
+    ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, width, height);
 
     const { minPrice, maxPrice, maxVolume, visible } = getVisibleRange();
-    const chartWidth = width - 70;
-    const chartHeight = height - 50;
+    const chartWidth = width - 75;
+    const chartHeight = height - 40;
     const barWidth = chartWidth / barsToShow;
     const candleSpacing = Math.max(1, barWidth * 0.15);
     const candleBodyWidth = Math.max(1, barWidth - candleSpacing * 2);
 
     // 1. Draw Grid Lines
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+    ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
 
     // Horizontal Price Grid & Scale
     const priceRange = maxPrice - minPrice;
     const priceStep = priceRange / 8;
     ctx.textAlign = "left";
-    ctx.font = "11px system-ui, sans-serif";
-    ctx.fillStyle = "#94a3b8";
+    ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.fillStyle = textColor;
 
     for (let i = 0; i <= 8; i++) {
       const p = minPrice + i * priceStep;
@@ -237,15 +248,63 @@ export default function ChartCanvas({
       ctx.fillText(timeStr, x - 25, chartHeight + 20);
     }
 
-    // 2. Draw Volume Bars at bottom 20% of chart
-    const volHeight = chartHeight * 0.2;
+    // 2. Draw TradingView Chart Legend Overlay (Top Left)
+    const activeCandle = (mousePos && mousePos.x <= chartWidth)
+      ? visible[Math.floor(mousePos.x / barWidth)] || visible[visible.length - 1]
+      : visible[visible.length - 1];
+
+    if (activeCandle) {
+      // Symbol Title Line
+      ctx.fillStyle = isDark ? "#ffffff" : "#131722";
+      ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText(`${symbolName} · ${timeframeLabel} · NSE`, 15, 22);
+
+      // Buy & Sell Quote Badges (TradingView Style)
+      const pStr = activeCandle.close.toFixed(2);
+      ctx.fillStyle = "#f23645"; // Red Sell
+      ctx.fillRect(15, 30, 90, 22);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillText(`${pStr} SELL`, 22, 44);
+
+      ctx.fillStyle = "#089981"; // Blue/Green Buy
+      ctx.fillRect(112, 30, 90, 22);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(`${pStr} BUY`, 122, 44);
+
+      // OHLC Readout Line
+      const diff = activeCandle.close - activeCandle.open;
+      const diffPct = (diff / activeCandle.open) * 100;
+      const diffColor = diff >= 0 ? "#089981" : "#f23645";
+
+      ctx.fillStyle = isDark ? "#b2b5be" : "#434651";
+      ctx.font = "11px sans-serif";
+      const ohlcText = `O ${activeCandle.open.toFixed(2)}  H ${activeCandle.high.toFixed(
+        2
+      )}  L ${activeCandle.low.toFixed(2)}  C ${activeCandle.close.toFixed(2)}`;
+      ctx.fillText(ohlcText, 15, 68);
+
+      ctx.fillStyle = diffColor;
+      ctx.fillText(
+        `${diff >= 0 ? "+" : ""}${diff.toFixed(2)} (${diff >= 0 ? "+" : ""}${diffPct.toFixed(2)}%)`,
+        ctx.measureText(ohlcText).width + 25,
+        68
+      );
+
+      // Volume readout
+      ctx.fillStyle = isDark ? "#787b86" : "#787b86";
+      ctx.fillText(`Vol ${(activeCandle.volume / 1000).toFixed(2)}K`, 15, 84);
+    }
+
+    // 3. Draw Volume Bars at bottom 18% of chart
+    const volHeight = chartHeight * 0.18;
     visible.forEach((c, i) => {
       const idx = startIndex + i;
       const x = indexToX(idx, width);
       const vRatio = c.volume / (maxVolume || 1);
       const vY = chartHeight - vRatio * volHeight;
 
-      ctx.fillStyle = c.close >= c.open ? "rgba(16, 185, 129, 0.25)" : "rgba(244, 63, 94, 0.25)";
+      ctx.fillStyle = c.close >= c.open ? "rgba(8, 153, 129, 0.3)" : "rgba(242, 54, 69, 0.3)";
       ctx.fillRect(x - candleBodyWidth / 2, vY, candleBodyWidth, chartHeight - vY);
     });
 
@@ -365,7 +424,7 @@ export default function ChartCanvas({
       const lowY = priceToY(c.low, minPrice, maxPrice, height);
 
       const isBull = c.close >= c.open;
-      const color = isBull ? "#10b981" : "#f43f5e";
+      const color = isBull ? "#089981" : "#f23645";
 
       // Wick
       ctx.strokeStyle = color;
