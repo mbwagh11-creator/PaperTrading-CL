@@ -91,6 +91,9 @@ export default function Navbar() {
           <Link href="/analytics" className="rounded-full px-3 py-1.5 transition-all hover:bg-white/10 hover:text-white">
             Analytics
           </Link>
+          <Link href="/charting" className="rounded-full px-3 py-1.5 transition-all hover:bg-white/10 hover:text-white font-semibold text-[#00E599]">
+            📊 Chart Practice
+          </Link>
           <Link href="/pricing" className="rounded-full px-3 py-1.5 font-semibold text-accent hover:bg-accent/10 transition-all">
             Pricing
           </Link>
@@ -194,6 +197,13 @@ export default function Navbar() {
               className="bg-white/5 hover:bg-white/10 text-slate-200 p-3 rounded-xl flex items-center gap-2 border border-white/5 font-medium"
             >
               📉 Analytics
+            </Link>
+            <Link
+              href="/charting"
+              onClick={() => setMobileMenuOpen(false)}
+              className="bg-[#00E599]/10 border border-[#00E599]/30 text-[#00E599] p-3 rounded-xl flex items-center gap-2 font-bold"
+            >
+              📊 Chart Practice
             </Link>
             <Link
               href="/pricing"
