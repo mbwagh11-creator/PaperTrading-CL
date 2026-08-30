@@ -6,9 +6,26 @@ export interface UserSubscriptionInfo {
   subscriptionEndsAt: string | null;
   planName: string;
   price: string;
+  isAdmin: boolean;
 }
 
-const ADMIN_EMAILS = [process.env.ADMIN_EMAIL, process.env.NEXT_PUBLIC_ADMIN_EMAIL].filter(Boolean).map(e => e!.toLowerCase());
+export function isUserAdmin(user?: {
+  email?: string | null;
+  subscriptionStatus?: string | null;
+  subscriptionEndsAt?: Date | string | null;
+} | null): boolean {
+  if (!user) return false;
+  const userEmail = (user.email || "").toLowerCase().trim();
+  const adminEmails = [process.env.ADMIN_EMAIL, process.env.NEXT_PUBLIC_ADMIN_EMAIL]
+    .filter(Boolean)
+    .map((e) => e!.toLowerCase().trim());
+
+  if (user.subscriptionStatus === "LIFETIME") return true;
+  if (userEmail && adminEmails.includes(userEmail)) return true;
+  if (user.subscriptionEndsAt && new Date(user.subscriptionEndsAt).getFullYear() >= 2090) return true;
+
+  return false;
+}
 
 export function calculateSubscriptionStatus(user: {
   email?: string | null;
@@ -18,14 +35,10 @@ export function calculateSubscriptionStatus(user: {
   subscriptionEndsAt?: Date | null;
 }): UserSubscriptionInfo {
   const now = new Date();
-  const userEmail = (user.email || "").toLowerCase().trim();
+  const isAdmin = isUserAdmin(user);
 
   // 1. Creator / Admin Lifetime Free Access
-  if (
-    ADMIN_EMAILS.includes(userEmail) ||
-    user.subscriptionStatus === "LIFETIME" ||
-    (user.subscriptionEndsAt && new Date(user.subscriptionEndsAt).getFullYear() >= 2090)
-  ) {
+  if (isAdmin) {
     return {
       status: "ACTIVE",
       isAccessible: true,
@@ -34,6 +47,7 @@ export function calculateSubscriptionStatus(user: {
       subscriptionEndsAt: "2099-12-31T23:59:59.000Z",
       planName: "Lifetime Free Owner VIP",
       price: "₹0 (Lifetime Free)",
+      isAdmin: true,
     };
   }
 
@@ -51,6 +65,7 @@ export function calculateSubscriptionStatus(user: {
       subscriptionEndsAt: new Date(user.subscriptionEndsAt).toISOString(),
       planName: "PRO-TRADER Pro",
       price: "₹149/month",
+      isAdmin: false,
     };
   }
 
@@ -71,6 +86,7 @@ export function calculateSubscriptionStatus(user: {
       subscriptionEndsAt: null,
       planName: "7-Day Free Trial",
       price: "₹0 (Free Trial)",
+      isAdmin: false,
     };
   }
 
@@ -83,5 +99,6 @@ export function calculateSubscriptionStatus(user: {
     subscriptionEndsAt: null,
     planName: "Trial Expired",
     price: "₹149/month required",
+    isAdmin: false,
   };
 }

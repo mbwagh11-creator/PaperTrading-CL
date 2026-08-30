@@ -41,7 +41,12 @@ export default function FeedbackClient() {
           if (subData.user) {
             setName(subData.user.name || "");
             setEmail(subData.user.email || "");
-            if ((process.env.NEXT_PUBLIC_ADMIN_EMAIL && subData.user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) || subData.user.isAdmin) {
+            if (
+              subData.user.isAdmin ||
+              subData.subscription?.isAdmin ||
+              subData.user.subscriptionStatus === "LIFETIME" ||
+              (process.env.NEXT_PUBLIC_ADMIN_EMAIL && subData.user.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL.toLowerCase())
+            ) {
               setIsAdmin(true);
             }
           }

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { isUserAdmin } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    const userEmail = (currentUser?.email || "").toLowerCase().trim();
-    const isOwner = (Boolean(process.env.ADMIN_EMAIL && userEmail === process.env.ADMIN_EMAIL.toLowerCase())) || currentUser?.subscriptionStatus === "LIFETIME";
+    const isOwner = isUserAdmin(currentUser);
 
     if (!currentUser || !isOwner) {
       return NextResponse.json({ error: "Unauthorized access. Owner admin privileges required." }, { status: 403 });

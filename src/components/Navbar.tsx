@@ -7,13 +7,23 @@ interface SubStatus {
   status: "TRIAL" | "ACTIVE" | "EXPIRED" | "LIFETIME" | string;
   trialDaysRemaining: number;
   planName: string;
+  isAdmin?: boolean;
 }
 
 export default function Navbar() {
   const [sub, setSub] = useState<SubStatus | null>(null);
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string; isAdmin?: boolean; subscriptionStatus?: string } | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const showAdminLink = Boolean(
+    user?.isAdmin ||
+    sub?.isAdmin ||
+    user?.subscriptionStatus === "LIFETIME" ||
+    sub?.status === "LIFETIME" ||
+    sub?.planName?.includes("Owner VIP") ||
+    (process.env.NEXT_PUBLIC_ADMIN_EMAIL && user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL.toLowerCase())
+  );
 
   async function checkStatus() {
     try {
@@ -107,7 +117,7 @@ export default function Navbar() {
             Feedback
           </Link>
 
-          {(Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAIL && user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL.toLowerCase()) || sub?.status === "LIFETIME") && (
+          {showAdminLink && (
             <Link
               href="/admin"
               className="rounded-full px-3 py-1.5 bg-amber-400/15 text-amber-300 border border-amber-400/30 font-bold hover:bg-amber-400/25 transition-all"
@@ -233,7 +243,7 @@ export default function Navbar() {
             >
               Feedback
             </Link>
-            {(Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAIL && user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL.toLowerCase()) || sub?.status === "LIFETIME") && (
+            {showAdminLink && (
               <Link
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
