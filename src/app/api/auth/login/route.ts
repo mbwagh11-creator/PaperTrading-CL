@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         // Auto-heal creator password on login
         const newSalt = crypto.randomBytes(16).toString("hex");
         const newHash = hashPassword(password, newSalt);
-        user = await prisma.user.update({
+        const updated = await prisma.user.update({
           where: { id: user.id },
           data: {
             passwordHash: newHash,
@@ -70,10 +70,15 @@ export async function POST(req: NextRequest) {
             subscriptionStatus: "LIFETIME",
             subscriptionEndsAt: new Date("2099-12-31"),
           },
-        }).catch(() => user);
+        }).catch(() => null);
+        if (updated) user = updated;
       } else {
         return NextResponse.json({ error: "Invalid password. Please check your password or reset your credentials." }, { status: 401 });
       }
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: "Authentication failed." }, { status: 401 });
     }
 
     const { token, expiresAt } = await createSessionForUser(user.id);
