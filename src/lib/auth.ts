@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { isUserAdmin } from "@/lib/subscription";
 
 export const SESSION_COOKIE = "protrader_session";
 export const USER_JWT_COOKIE = "protrader_user_jwt";
@@ -53,7 +54,7 @@ export async function getCurrentUser() {
       }
       if (!user && jwtPayload.email) {
         // Self-heal user record in current serverless container DB
-        const isCreator = Boolean(process.env.ADMIN_EMAIL && jwtPayload.email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase());
+        const isCreator = isUserAdmin({ email: jwtPayload.email });
         user = await prisma.user.create({
           data: {
             id: jwtPayload.userId,

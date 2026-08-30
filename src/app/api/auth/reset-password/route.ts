@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { createSessionForUser, sessionCookieOptions, signJwt, USER_JWT_COOKIE } from "@/lib/auth";
+import { isUserAdmin } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 4 characters long." }, { status: 400 });
     }
 
-    const isCreator = Boolean(process.env.ADMIN_EMAIL && email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase());
+    const isCreator = isUserAdmin({ email });
 
     // SECURITY CHECK: Require OTP verification unless creator master access
     if (!isOtpVerified && !isCreator) {

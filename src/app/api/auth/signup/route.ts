@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { createSessionForUser, sessionCookieOptions, signJwt, USER_JWT_COOKIE } from "@/lib/auth";
+import { isUserAdmin } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
     const salt = crypto.randomBytes(16).toString("hex");
     const passwordHash = hashPassword(password, salt);
 
-    const isCreator = Boolean(process.env.ADMIN_EMAIL && email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase());
+    const isCreator = isUserAdmin({ email });
     const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const lifetimeEndsAt = new Date("2099-12-31");
 

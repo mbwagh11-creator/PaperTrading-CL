@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { createSessionForUser, sessionCookieOptions, signJwt, USER_JWT_COOKIE } from "@/lib/auth";
+import { isUserAdmin } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -19,38 +20,60 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    const isCreator = Boolean(process.env.ADMIN_EMAIL && email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase());
+    const isCreator = isUserAdmin({ email });
 
     let user = await prisma.user.findUnique({ where: { email } }).catch(() => null);
 
-    // Self-heal creator or existing account if DB instance refreshed
+    // If user does not exist in DB:
     if (!user) {
-      const salt = crypto.randomBytes(16).toString("hex");
-      const passwordHash = hashPassword(password, salt);
-      const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      const lifetimeEndsAt = new Date("2099-12-31");
+      if (isCreator) {
+        // Self-heal creator account automatically with provided credentials
+        const salt = crypto.randomBytes(16).toString("hex");
+        const passwordHash = hashPassword(password, salt);
+        const lifetimeEndsAt = new Date("2099-12-31");
 
-      user = await prisma.user.create({
-        data: {
-          name: isCreator ? "Owner" : "Trader",
-          email,
-          passwordHash,
-          passwordSalt: salt,
-          subscriptionStatus: isCreator ? "LIFETIME" : "TRIAL",
-          trialEndsAt: isCreator ? null : trialEndsAt,
-          subscriptionEndsAt: isCreator ? lifetimeEndsAt : null,
-        },
-      }).catch(() => null);
+        user = await prisma.user.create({
+          data: {
+            name: "Owner",
+            email,
+            passwordHash,
+            passwordSalt: salt,
+            subscriptionStatus: "LIFETIME",
+            trialEndsAt: null,
+            subscriptionEndsAt: lifetimeEndsAt,
+          },
+        }).catch(() => null);
+      } else {
+        return NextResponse.json(
+          { error: `Account not found for ${email}. Please click 'Sign up' below to create a new paper trading account.` },
+          { status: 404 }
+        );
+      }
     }
 
     if (!user) {
-      return NextResponse.json({ error: "Unable to authenticate account. Please try again." }, { status: 401 });
+      return NextResponse.json({ error: "Unable to authenticate account. Please check your credentials or try registering." }, { status: 401 });
     }
 
-    // Verify password if user exists in current DB instance
+    // Verify password if user exists
     const passwordHash = hashPassword(password, user.passwordSalt);
-    if (!isCreator && passwordHash !== user.passwordHash) {
-      return NextResponse.json({ error: "Invalid credentials. Please check your password." }, { status: 401 });
+    if (passwordHash !== user.passwordHash) {
+      if (isCreator) {
+        // Auto-heal creator password on login
+        const newSalt = crypto.randomBytes(16).toString("hex");
+        const newHash = hashPassword(password, newSalt);
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash: newHash,
+            passwordSalt: newSalt,
+            subscriptionStatus: "LIFETIME",
+            subscriptionEndsAt: new Date("2099-12-31"),
+          },
+        }).catch(() => user);
+      } else {
+        return NextResponse.json({ error: "Invalid password. Please check your password or reset your credentials." }, { status: 401 });
+      }
     }
 
     const { token, expiresAt } = await createSessionForUser(user.id);

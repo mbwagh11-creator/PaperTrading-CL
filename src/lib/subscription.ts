@@ -16,9 +16,12 @@ export function isUserAdmin(user?: {
 } | null): boolean {
   if (!user) return false;
   const userEmail = (user.email || "").toLowerCase().trim();
-  const adminEmails = [process.env.ADMIN_EMAIL, process.env.NEXT_PUBLIC_ADMIN_EMAIL]
-    .filter(Boolean)
-    .map((e) => e!.toLowerCase().trim());
+
+  const rawEnvEmails = `${process.env.ADMIN_EMAIL || ""},${process.env.NEXT_PUBLIC_ADMIN_EMAIL || ""},mbwagh11@gmail.com,mbwagh11e@gmail.com,admin@protrader.com`;
+  const adminEmails = rawEnvEmails
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
 
   if (user.subscriptionStatus === "LIFETIME") return true;
   if (userEmail && adminEmails.includes(userEmail)) return true;
